@@ -1,10 +1,12 @@
 # Catalog Scanner
 
+Local-first barcode catalog for web and Android (Expo).
+
 ## Requirements
 
 - Node.js 20 or newer
 - pnpm
-- For Android APK builds: Android Studio or the Android SDK command-line tools, plus Java and Gradle
+- For Android device/emulator runs: Expo Go, or Android Studio / Android SDK for native builds
 
 ## Install
 
@@ -15,7 +17,7 @@ pnpm install
 If you need to reinstall Expo for the Android workspace, use:
 
 ```bash
-pnpm --filter @workspace/catalog-scanner-android add expo
+pnpm --filter @workspace/catalog-scanner-android add expo@~54.0.27
 ```
 
 Do not use `npm install expo` at the repository root. This workspace is pnpm-managed and the root preinstall guard will stop npm on purpose.
@@ -25,6 +27,8 @@ Do not use `npm install expo` at the repository root. This workspace is pnpm-man
 The web app runs on port `20003`.
 
 ```bash
+pnpm web:dev
+# or
 PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web dev
 ```
 
@@ -32,22 +36,40 @@ Open the site at:
 
 - http://localhost:20003/
 
-If you want the production build instead:
+Production build:
 
 ```bash
 PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web build
 PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web serve
 ```
 
-## Boot the Android app
+## Boot the Android / Expo app
 
-The Android Expo app uses port `18900`.
+The Expo app uses port `18900` by default.
 
 ```bash
+pnpm android:dev
+# or
 PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev
 ```
 
-Useful checks:
+Useful variants:
+
+```bash
+# LAN / local Metro (default)
+PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev
+
+# Tunnel when your phone is on a different network
+PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev:tunnel
+
+# Open Android emulator/device directly
+PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev:android
+
+# Web preview of the Expo app
+PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev:web
+```
+
+Checks:
 
 ```bash
 pnpm --filter @workspace/catalog-scanner-android typecheck
@@ -57,17 +79,12 @@ pnpm --filter @workspace/catalog-scanner-android run serve
 
 ## APK build
 
-This workspace does not include a checked-in native Android project or an EAS build configuration, so an APK cannot be produced inside this container as-is.
+This workspace does not include a checked-in native Android project or an EAS build configuration, so an APK cannot be produced inside a plain container as-is.
 
-To build an APK on a machine that has the Android SDK installed, the usual path is:
-
-1. Generate native Android files with Expo.
-2. Open or use the generated `android/` project.
-3. Run Gradle to assemble a release APK.
-
-Example workflow:
+To build an APK on a machine that has the Android SDK installed:
 
 ```bash
+cd artifacts/catalog-scanner-android
 npx expo prebuild --platform android
 cd android
 ./gradlew assembleRelease
@@ -75,10 +92,11 @@ cd android
 
 The APK is typically written under `android/app/build/outputs/apk/release/`.
 
-If you want a cloud build instead, configure Expo Application Services (`eas.json`) and run an Android build from there.
+For a cloud build, configure Expo Application Services (`eas.json`) and run an Android build from there.
 
 ## Notes
 
 - The Android and web apps are both local-first.
 - The web site is configured for the root path `/`.
 - The Android static deployment uses `/catalog-scanner-android/` as its base path.
+- Keep Expo on SDK 54 (`expo@~54.0.27`) for the Android app. Do not install Expo 57 at the repo root.
