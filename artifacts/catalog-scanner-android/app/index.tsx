@@ -414,7 +414,7 @@ export default function CatalogHome() {
           </View>
         )}
         ListEmptyComponent={loaded ? <View style={styles.emptyBlock}><View style={styles.emptyIcon}><Feather name={search ? 'search' : 'inbox'} size={26} color={colors.secondaryForeground} /></View><Text style={styles.emptyTitle}>{search ? 'Nothing matches that search' : 'Your catalog is ready'}</Text><Text style={styles.bodyText}>{search ? 'Try a different name or barcode.' : 'Scan a barcode or add a product by hand.'}</Text>{!search ? <Pressable onPress={() => openAdd()} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]} testID="button-empty-add"><Feather name="plus" size={18} color={colors.primaryForeground} /><Text style={styles.primaryButtonText}>Add first product</Text></Pressable> : null}</View> : null}
-        ListFooterComponent={<View style={styles.footer}><Text style={styles.caption}>Stored locally on this tablet · no account needed</Text><Text style={styles.footerMono}>LOCAL-FIRST</Text></View>}
+        ListFooterComponent={<View style={styles.footer}><Text style={styles.footerMono}>LOCAL-FIRST</Text></View>}
       />
       {modal ? <Modal visible animationType="slide" transparent onRequestClose={closeModal}>
         <View style={styles.modalBackdrop}>

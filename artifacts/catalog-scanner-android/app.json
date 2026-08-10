@@ -20,13 +20,11 @@
     "web": {
       "favicon": "./assets/images/icon.png"
     },
+    "updates": {
+      "checkAutomatically": "NEVER"
+    },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://replit.com/"
-        }
-      ],
+      "expo-router",
       [
         "expo-camera",
         {
