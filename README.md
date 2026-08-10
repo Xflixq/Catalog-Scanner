@@ -49,45 +49,41 @@ The web app runs on port `20003`.
 
 ```bash
 pnpm web:dev
-# or
-PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web dev
 ```
 
 Open the site at:
 
 - http://localhost:20003/
 
-Production build:
-
-```bash
-PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web build
-PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web serve
-```
-
 ## Boot the Android / Expo app
 
-The Expo app uses port `18900` by default.
+The Expo app uses port `18900` by default. Scripts are Windows-safe (no Unix `VAR=value` syntax).
 
 ```bash
 pnpm android:dev
-# or
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev
 ```
 
 Useful variants:
 
 ```bash
-# LAN / local Metro (default)
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev
-
 # Tunnel when your phone is on a different network
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev:tunnel
+pnpm android:dev:tunnel
+# or
+pnpm --filter @workspace/catalog-scanner-android run dev:tunnel
 
 # Open Android emulator/device directly
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev:android
+pnpm --filter @workspace/catalog-scanner-android run dev:android
 
 # Web preview of the Expo app
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev:web
+pnpm --filter @workspace/catalog-scanner-android run dev:web
+```
+
+Optional env overrides (PowerShell):
+
+```powershell
+$env:PORT=18900
+$env:EXPO_PUBLIC_DOMAIN="localhost"
+pnpm android:dev
 ```
 
 Checks:
