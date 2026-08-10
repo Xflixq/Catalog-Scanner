@@ -2,15 +2,17 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "android:add-expo": "pnpm --filter @workspace/catalog-scanner-android add expo@~54.0.27",
-    "android:dev": "PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev",
-    "web:dev": "PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web dev",
+    "android:dev": "pnpm --filter @workspace/catalog-scanner-android run dev",
+    "android:dev:tunnel": "pnpm --filter @workspace/catalog-scanner-android run dev:tunnel",
+    "web:dev": "pnpm --filter @workspace/catalog-scanner-web run dev",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
-  "private": true,
   "devDependencies": {
     "@types/react": "~19.1.10",
     "prettier": "^3.9.6",

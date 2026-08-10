@@ -14,6 +14,27 @@ Local-first barcode catalog for web and Android (Expo).
 pnpm install
 ```
 
+### Windows / pnpm 11 note
+
+If install or `pnpm android:dev` fails with:
+
+```text
+ERR_PNPM_IGNORED_BUILDS Ignored build scripts: esbuild@...
+```
+
+this repo already allowlists `esbuild` in `pnpm-workspace.yaml`. Pull the latest fix, then reinstall:
+
+```bash
+pnpm install
+```
+
+If your pnpm still blocks builds, approve them once:
+
+```bash
+pnpm approve-builds
+pnpm install
+```
+
 If you need to reinstall Expo for the Android workspace, use:
 
 ```bash
