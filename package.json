@@ -4,16 +4,15 @@
   "license": "MIT",
   "scripts": {
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "android:add-expo": "pnpm --filter @workspace/catalog-scanner-android add expo",
+    "android:add-expo": "pnpm --filter @workspace/catalog-scanner-android add expo@~54.0.27",
+    "android:dev": "PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev",
+    "web:dev": "PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web dev",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "private": true,
-  "dependencies": {
-    "expo": "^57.0.11"
-  },
   "devDependencies": {
-    "@types/react": "~19.2.4",
+    "@types/react": "~19.1.10",
     "prettier": "^3.9.6",
     "typescript": "~5.9.3"
   }
