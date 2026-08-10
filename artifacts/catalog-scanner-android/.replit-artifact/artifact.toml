@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/catalog-scanner-android/"
+title = "Catalog Scanner Android"
+description = "A simple local-first Android tablet catalog companion for scanning barcodes, adding products one at a time or in bulk, and finding saved product records."
+version = "1.0.0"
+id = "artifacts/catalog-scanner-android"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/catalog-scanner-android/" ]
+localPort = 18900
+
+[services.development]
+run = "pnpm --filter @workspace/catalog-scanner-android run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/catalog-scanner-android", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/catalog-scanner-android", "run", "serve" ]
+
+[services.env]
+PORT = "18900"
+BASE_PATH = "/catalog-scanner-android/"

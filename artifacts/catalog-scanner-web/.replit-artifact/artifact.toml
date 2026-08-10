@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Catalog Scanner"
+description = "A simple tablet-friendly catalog app for scanning barcodes, looking up products, and adding single or bulk entries without accounts or cloud services."
+version = "1.0.0"
+id = "artifacts/catalog-scanner-web"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20003
+
+[services.development]
+run = "pnpm --filter @workspace/catalog-scanner-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/catalog-scanner-web", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/catalog-scanner-web/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20003"
+BASE_PATH = "/"
