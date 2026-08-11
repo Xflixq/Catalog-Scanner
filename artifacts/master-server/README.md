@@ -1,4 +1,4 @@
-# Catalog Scanner Master
+# DTM Inventory Master
 
 Native desktop Master app + local pairing API.
 

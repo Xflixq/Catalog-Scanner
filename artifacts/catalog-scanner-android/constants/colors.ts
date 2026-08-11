@@ -1,36 +1,36 @@
 /**
- * Black / white design tokens matching the web catalog UI (index.css).
- * Light-only — Expo Go and the website stay on the same monochrome finish.
+ * DTM Inventory design tokens.
+ * Primary brand blue #293588 with clean light surfaces.
  */
 
 const colors = {
   light: {
-    text: '#000000',
-    tint: '#000000',
+    text: '#111827',
+    tint: '#293588',
 
     background: '#FFFFFF',
-    foreground: '#000000',
+    foreground: '#111827',
 
     card: '#FFFFFF',
-    cardForeground: '#000000',
+    cardForeground: '#111827',
 
-    primary: '#000000',
+    primary: '#293588',
     primaryForeground: '#FFFFFF',
 
-    secondary: '#F2F2F2',
-    secondaryForeground: '#000000',
+    secondary: '#EEF0F8',
+    secondaryForeground: '#111827',
 
-    muted: '#F2F2F2',
-    mutedForeground: '#333333',
+    muted: '#EEF0F8',
+    mutedForeground: '#4B5563',
 
-    accent: '#000000',
+    accent: '#293588',
     accentForeground: '#FFFFFF',
 
-    destructive: '#000000',
+    destructive: '#293588',
     destructiveForeground: '#FFFFFF',
 
-    border: '#262626',
-    input: '#262626',
+    border: '#D5DAEC',
+    input: '#D5DAEC',
   },
   radius: 14,
 };

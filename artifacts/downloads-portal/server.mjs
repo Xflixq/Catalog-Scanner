@@ -99,7 +99,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(port, '0.0.0.0', () => {
   console.log('');
-  console.log('Catalog Scanner Downloads');
+  console.log('DTM Inventory Downloads');
   console.log('-------------------------');
   console.log(`Open: http://127.0.0.1:${port}`);
   console.log(`Files: ${downloadsDir}`);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Best-effort APK builder for Catalog Scanner Android.
+ * Best-effort APK builder for DTM Inventory Android.
  *
  * Order:
  * 1) eas build --local --platform android --profile local-apk  (if eas-cli + Android SDK available)
@@ -70,7 +70,7 @@ if (eas.status === 0) {
   ]);
   if (built.status === 0) {
     const apk = findApk(appRoot) || findApk(path.join(repoRoot, 'dist'));
-    if (apk && copyIfExists(apk, 'CatalogScanner.apk')) process.exit(0);
+    if (apk && copyIfExists(apk, 'DTMInventory.apk')) process.exit(0);
   }
   console.warn('EAS local build did not produce an APK. Trying Gradle path...');
 } else {
@@ -87,7 +87,7 @@ if (prebuild.status === 0 && fs.existsSync(path.join(appRoot, 'android'))) {
       const apk =
         findApk(path.join(appRoot, 'android', 'app', 'build', 'outputs', 'apk')) ||
         findApk(path.join(appRoot, 'android'));
-      if (apk && copyIfExists(apk, 'CatalogScanner.apk')) process.exit(0);
+      if (apk && copyIfExists(apk, 'DTMInventory.apk')) process.exit(0);
     }
   }
 }
@@ -107,7 +107,7 @@ if (exp.status !== 0) {
 
 // Write a small note next to the export
 fs.writeFileSync(
-  path.join(outDir, 'CatalogScanner-android-README.txt'),
+  path.join(outDir, 'DTMInventory-android-README.txt'),
   [
     'Native APK was not built in this environment (Android SDK / EAS local build unavailable).',
     'An Expo Android export is available under android-export/.',
@@ -116,7 +116,7 @@ fs.writeFileSync(
     '  pnpm android:apk',
     '',
     'Or use EAS:',
-    '  cd artifacts/catalog-scanner-android',
+    '  cd artifacts/dtm-inventory-android',
     '  pnpm exec eas build -p android --profile preview',
     '',
   ].join('\n'),

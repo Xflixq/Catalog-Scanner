@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Catalog Scanner Master desktop app + pairing API",
+  "description": "DTM Inventory Master desktop app + pairing API",
   "bin": {
-    "catalog-scanner-master": "./src/cli.js"
+    "dtm-inventory-master": "./src/cli.js"
   },
   "scripts": {
     "dev": "electron src/gui/master/main.mjs",
