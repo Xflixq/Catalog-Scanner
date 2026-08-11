@@ -2,8 +2,9 @@
 # Requires WiX Toolset v3+ (candle.exe / light.exe) on PATH,
 # or set $env:WIX to the WiX install root.
 #
+# Works in Windows PowerShell 5.1 and PowerShell 7+.
 # Usage (from repo root after master bundle exists):
-#   pwsh -File artifacts/master-server/installer/build-msi.ps1
+#   .\artifacts\master-server\installer\build-msi.ps1
 
 $ErrorActionPreference = 'Stop'
 $Root = Resolve-Path (Join-Path $PSScriptRoot '..')
@@ -34,29 +35,34 @@ if (Test-Path (Join-Path $Dist 'CatalogScannerMaster.exe')) {
   Copy-Item (Join-Path $Dist 'CatalogScannerMaster.exe') (Join-Path $Stage 'CatalogScannerMaster.exe') -Force
 }
 
-$candle = Get-Command candle.exe -ErrorAction SilentlyContinue
-$light = Get-Command light.exe -ErrorAction SilentlyContinue
-if (-not $candle -and $env:WIX) {
-  $candle = Get-Command (Join-Path $env:WIX 'bin\candle.exe') -ErrorAction SilentlyContinue
-  $light = Get-Command (Join-Path $env:WIX 'bin\light.exe') -ErrorAction SilentlyContinue
+$candleCmd = Get-Command candle.exe -ErrorAction SilentlyContinue
+$lightCmd = Get-Command light.exe -ErrorAction SilentlyContinue
+if (-not $candleCmd -and $env:WIX) {
+  $candlePath = Join-Path $env:WIX 'bin\candle.exe'
+  $lightPath = Join-Path $env:WIX 'bin\light.exe'
+  if (Test-Path $candlePath) { $candleCmd = Get-Item $candlePath }
+  if (Test-Path $lightPath) { $lightCmd = Get-Item $lightPath }
 }
 
-if (-not $candle -or -not $light) {
+if (-not $candleCmd -or -not $lightCmd) {
   Write-Host 'WiX not found. Creating portable zip instead of MSI.'
   $zip = Join-Path $OutDir 'CatalogScannerMaster-Portable.zip'
   if (Test-Path $zip) { Remove-Item $zip -Force }
-  Compress-Archive -Path (Join-Path $Stage '*') -DestinationPath $zip
+  Compress-Archive -Path (Join-Path $Stage '*') -DestinationPath $zip -Force
   Write-Host "Wrote $zip"
   Write-Host 'Install WiX Toolset to produce a real .msi, then re-run this script.'
   exit 0
 }
 
+$candleExe = if ($candleCmd.Source) { $candleCmd.Source } else { $candleCmd.FullName }
+$lightExe = if ($lightCmd.Source) { $lightCmd.Source } else { $lightCmd.FullName }
+
 $wixobj = Join-Path $OutDir 'CatalogScannerMaster.wixobj'
-& $candle.Source -nologo -out $wixobj $Wxs "-dStageDir=$Stage"
+& $candleExe -nologo -out $wixobj $Wxs "-dStageDir=$Stage"
 if ($LASTEXITCODE -ne 0) { throw 'candle failed' }
 
 $msi = Join-Path $OutDir 'CatalogScannerMaster.msi'
-& $light.Source -nologo -out $msi $wixobj
+& $lightExe -nologo -out $msi $wixobj
 if ($LASTEXITCODE -ne 0) { throw 'light failed' }
 
 Write-Host "MSI ready: $msi"
