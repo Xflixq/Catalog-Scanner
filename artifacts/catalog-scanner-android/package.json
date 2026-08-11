@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/catalog-scanner-android",
+  "name": "@workspace/dtm-inventory-android",
   "version": "0.0.0",
   "private": true,
   "main": "index.js",

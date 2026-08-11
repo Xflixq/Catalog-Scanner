@@ -1,4 +1,4 @@
-# One-command local build for Catalog Scanner packages + downloads page.
+# One-command local build for DTM Inventory packages + downloads page.
 # Works in Windows PowerShell 5.1 and PowerShell 7+.
 # Usage:
 #   .\scripts\build-all.ps1
@@ -54,41 +54,41 @@ Invoke-Step 'Install dependencies' {
 
 Invoke-Step 'Typecheck clients' {
   # Soft: incomplete drop-in trees may not include android/web packages.
-  try { Invoke-Pnpm --filter @workspace/catalog-scanner-android typecheck } catch {
+  try { Invoke-Pnpm --filter @workspace/dtm-inventory-android typecheck } catch {
     Write-Host "Android typecheck skipped: $($_.Exception.Message)" -ForegroundColor Yellow
   }
-  try { Invoke-Pnpm --filter @workspace/catalog-scanner-web typecheck } catch {
+  try { Invoke-Pnpm --filter @workspace/dtm-inventory-web typecheck } catch {
     Write-Host "Web typecheck skipped: $($_.Exception.Message)" -ForegroundColor Yellow
   }
 }
 
 Invoke-Step 'Build master server bundle' {
   Invoke-Pnpm master:build
-  $bundle = Join-Root 'artifacts','master-server','dist','catalog-scanner-master.cjs'
+  $bundle = Join-Root 'artifacts','master-server','dist','dtm-inventory-master.cjs'
   if (-not (Test-Path $bundle)) {
     throw "Master bundle missing after build: $bundle"
   }
-  Copy-Item $bundle (Join-Root 'dist','downloads','catalog-scanner-master.cjs') -Force
+  Copy-Item $bundle (Join-Root 'dist','downloads','dtm-inventory-master.cjs') -Force
 
-  $exe = Join-Root 'artifacts','master-server','dist','CatalogScannerMaster.exe'
+  $exe = Join-Root 'artifacts','master-server','dist','DTMInventoryMaster.exe'
   if (Test-Path $exe) {
-    Copy-Item $exe (Join-Root 'dist','downloads','CatalogScannerMaster.exe') -Force
+    Copy-Item $exe (Join-Root 'dist','downloads','DTMInventoryMaster.exe') -Force
   }
 
   $public = Join-Root 'artifacts','master-server','dist','public'
   $runCmd = Join-Root 'artifacts','master-server','installer','run-master.cmd'
   $readme = Join-Root 'artifacts','master-server','installer','README-INSTALL.txt'
   if (Test-Path $public) {
-    $zip = Join-Root 'dist','downloads','CatalogScannerMaster-Portable.zip'
+    $zip = Join-Root 'dist','downloads','DTMInventoryMaster-Portable.zip'
     if (Test-Path $zip) { Remove-Item $zip -Force }
     $stage = Join-Root 'dist','downloads','_portable-stage'
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $stage | Out-Null
-    Copy-Item $bundle (Join-Path $stage 'catalog-scanner-master.cjs') -Force
+    Copy-Item $bundle (Join-Path $stage 'dtm-inventory-master.cjs') -Force
     if (Test-Path $runCmd) { Copy-Item $runCmd (Join-Path $stage 'run-master.cmd') -Force }
     if (Test-Path $readme) { Copy-Item $readme (Join-Path $stage 'README-INSTALL.txt') -Force }
     Copy-Item $public (Join-Path $stage 'public') -Recurse -Force
-    if (Test-Path $exe) { Copy-Item $exe (Join-Path $stage 'CatalogScannerMaster.exe') -Force }
+    if (Test-Path $exe) { Copy-Item $exe (Join-Path $stage 'DTMInventoryMaster.exe') -Force }
     Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
     Remove-Item $stage -Recurse -Force
   }
