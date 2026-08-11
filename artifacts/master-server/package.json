@@ -8,10 +8,10 @@
     "dtm-inventory-master": "./src/cli.js"
   },
   "scripts": {
-    "dev": "electron src/gui/master/main.mjs",
-    "start": "electron src/gui/master/main.mjs",
+    "dev": "node ../../scripts/run-electron.mjs src/gui/master/main.mjs",
+    "start": "node ../../scripts/run-electron.mjs src/gui/master/main.mjs",
     "dev:api": "node src/cli.js",
-    "setup:dev": "electron src/gui/setup/main.mjs",
+    "setup:dev": "node ../../scripts/run-electron.mjs src/gui/setup/main.mjs",
     "build:exe": "node scripts/build-exe.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "rebuild:native": "pnpm rebuild better-sqlite3",
