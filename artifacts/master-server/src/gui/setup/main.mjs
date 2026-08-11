@@ -26,15 +26,27 @@ function log(line, pct, message) {
 }
 
 function defaultInstallDir() {
+  // User-writable default so Setup does not require Administrator.
   if (process.platform === 'win32') {
-    return path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'DTMInventoryMaster');
+    const local = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+    return path.join(local, 'Programs', 'DTM Inventory');
   }
-  return path.join(os.homedir(), 'DTMInventoryMaster');
+  return path.join(os.homedir(), 'DTM Inventory');
 }
 
 function defaultDataDir() {
   if (process.platform === 'win32') {
-    return path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'DTMInventory');
+    // Prefer ProgramData; fall back to LocalAppData if blocked.
+    const programData = process.env.PROGRAMDATA || 'C:\\ProgramData';
+    const preferred = path.join(programData, 'DTMInventory');
+    try {
+      fs.mkdirSync(preferred, { recursive: true });
+      fs.accessSync(preferred, fs.constants.W_OK);
+      return preferred;
+    } catch {
+      const local = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+      return path.join(local, 'DTMInventory');
+    }
   }
   return path.join(os.homedir(), '.dtm-inventory');
 }
@@ -56,6 +68,13 @@ function resolvePayloadDir() {
     }
   }
   return path.resolve(__dirname, '../../../dist');
+}
+
+function ensureWritableDir(dir) {
+  fs.mkdirSync(dir, { recursive: true });
+  const probe = path.join(dir, `.dtm-write-test-${process.pid}`);
+  fs.writeFileSync(probe, 'ok');
+  fs.unlinkSync(probe);
 }
 
 function copyDir(src, dest) {
@@ -139,7 +158,6 @@ function createShortcutWindows(targetPath, shortcutPath, workDir, description) {
     `$s.WindowStyle = 7`,
     `$s.Save()`,
   ].join('; ');
-  // Hard 30s timeout so shortcut creation never hangs the installer UI.
   spawnSync(
     'powershell.exe',
     ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', ps],
@@ -200,16 +218,38 @@ function createWindow() {
 }
 
 async function performInstall(opts = {}) {
-  const installDir = opts.installDir || defaultInstallDir();
-  const dataDir = opts.dataDir || defaultDataDir();
+  let installDir = opts.installDir || defaultInstallDir();
+  let dataDir = opts.dataDir || defaultDataDir();
   const payload = resolvePayloadDir();
 
   log(`Install folder: ${installDir}`, 8, 'Preparing...');
   log(`Data folder: ${dataDir}`, 12);
   log(`Payload: ${payload}`, 16);
 
-  fs.mkdirSync(installDir, { recursive: true });
-  fs.mkdirSync(dataDir, { recursive: true });
+  try {
+    ensureWritableDir(installDir);
+  } catch (err) {
+    // Auto-fallback away from Program Files when not elevated.
+    const fallback = defaultInstallDir();
+    if (path.resolve(installDir) !== path.resolve(fallback)) {
+      log(`Install folder not writable, using ${fallback}`, 14, 'Preparing...');
+      installDir = fallback;
+      ensureWritableDir(installDir);
+    } else {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Cannot write to install folder:\n${installDir}\n\n${msg}\n\nChoose a folder you can write to (for example your user folder), or run Setup as Administrator.`,
+      );
+    }
+  }
+
+  try {
+    ensureWritableDir(dataDir);
+  } catch {
+    dataDir = defaultDataDir();
+    ensureWritableDir(dataDir);
+  }
+
   log('Folders ready', 22, 'Copying files...');
 
   const bundleCandidates = [
@@ -305,7 +345,6 @@ function wireIpc() {
 
   ipcMain.handle('setup:install', async (_e, opts = {}) => {
     try {
-      // Hard 30s ceiling for the whole install so the UI never hangs.
       return await withTimeout(performInstall(opts), DEFAULT_TIMEOUT_MS, 'Install');
     } catch (err) {
       log(err instanceof Error ? err.message : String(err), undefined, 'Something went wrong');
@@ -340,7 +379,6 @@ function wireIpc() {
 }
 
 app.whenReady().then(() => {
-  // Fail fast if Electron never finishes ready work.
   const bootTimer = setTimeout(() => {
     dialog.showErrorBox('DTM Inventory Setup', 'Setup timed out while starting (30s).');
     app.quit();

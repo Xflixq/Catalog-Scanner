@@ -97,11 +97,14 @@ $('toInstall').addEventListener('click', async () => {
     await new Promise((r) => setTimeout(r, 250));
     show('stepDone');
   } catch (e) {
-    appendLog(e.message || String(e));
+    const msg = e.message || String(e);
+    appendLog(msg);
     state.logsVisible = true;
     $('logDrawer').classList.remove('hidden');
     $('toggleLogs').textContent = 'Hide logs';
-    $('progressText').textContent = 'Something went wrong';
+    $('progressText').textContent = msg.includes('EPERM') || msg.includes('not permitted')
+      ? 'Permission blocked - choose a user folder'
+      : 'Something went wrong';
     setTimeout(() => show('stepLocation'), 900);
   }
 });
