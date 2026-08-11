@@ -81,7 +81,7 @@ export function createApp(config) {
   app.get('/api/health', (_req, res) => {
     res.json({
       status: 'ok',
-      service: 'catalog-scanner-master',
+      service: 'dtm-inventory-master',
       time: nowIso(),
       lanIps: getLanIPv4Addresses(),
       port: config.port,
@@ -109,7 +109,7 @@ export function createApp(config) {
     const baseUrl = `http://${primary}:${config.port}`;
     const payload = {
       v: 1,
-      type: 'catalog-scanner-tether',
+      type: 'dtm-inventory-tether',
       baseUrl,
       lanIps: getLanIPv4Addresses().map((ip) => `http://${ip}:${config.port}`),
       port: config.port,
@@ -280,8 +280,8 @@ export function createApp(config) {
 
   app.get('/', (_req, res) => {
     res.json({
-      name: 'Catalog Scanner Master API',
-      note: 'Use the Catalog Scanner Master desktop app. This endpoint is for device pairing only.',
+      name: 'DTM Inventory Master API',
+      note: 'Use the DTM Inventory Master desktop app. This endpoint is for device pairing only.',
     });
   });
 

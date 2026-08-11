@@ -1,11 +1,11 @@
-Catalog Scanner Master
+DTM Inventory Master
 ======================
 
 End users
 ---------
-Run CatalogScannerMaster.msi
+Run DTMInventoryMaster.msi
 
-That installs Master on this PC. Open "Catalog Scanner Master" from the Start Menu.
+That installs Master on this PC. Open "DTM Inventory Master" from the Start Menu.
 No browser. No command prompt windows.
 
 What Master does
@@ -16,7 +16,7 @@ What Master does
 
 Database
 --------
-Windows default: %ProgramData%\CatalogScanner\catalog.sqlite
+Windows default: %ProgramData%\DTMInventory\catalog.sqlite
 
 Firewall
 --------

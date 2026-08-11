@@ -1,5 +1,5 @@
-# Build Catalog Scanner product packages.
-# Primary user deliverable: CatalogScannerMaster.msi
+# Build DTM Inventory product packages.
+# Primary user deliverable: DTMInventoryMaster.msi
 # Setup GUI is for in-product install experience during development.
 #
 # Usage:
@@ -11,7 +11,7 @@ $Root = Resolve-Path (Join-Path $InstallerDir '..')
 $Dist = Join-Path $Root 'dist'
 $Payload = Join-Path $Dist 'payload'
 $OutDir = Join-Path $Dist 'installer'
-$Bundle = Join-Path $Dist 'catalog-scanner-master.cjs'
+$Bundle = Join-Path $Dist 'dtm-inventory-master.cjs'
 
 if (-not (Test-Path $Bundle) -and -not (Test-Path $Payload)) {
   throw "Missing build output. Run: pnpm master:build"
@@ -46,7 +46,7 @@ Get-ChildItem $OutDir -Filter *.zip -ErrorAction SilentlyContinue | ForEach-Obje
   Remove-Item $_.FullName -Force
 }
 
-$msi = Join-Path $OutDir 'CatalogScannerMaster.msi'
+$msi = Join-Path $OutDir 'DTMInventoryMaster.msi'
 if (Test-Path $msi) {
   Write-Host "Primary package ready: $msi"
 } else {

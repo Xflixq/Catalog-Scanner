@@ -1,19 +1,19 @@
-# Build CatalogScannerMaster.msi (primary end-user package).
+# Build DTMInventoryMaster.msi (primary end-user package).
 # Supports WiX v7 `wix` CLI and classic candle/light.
 # No zip-first path.
 
 $ErrorActionPreference = 'Stop'
 $Root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $Dist = Join-Path $Root 'dist'
-$Bundle = Join-Path $Dist 'catalog-scanner-master.cjs'
+$Bundle = Join-Path $Dist 'dtm-inventory-master.cjs'
 $Payload = Join-Path $Dist 'payload'
 $Src = Join-Path $Root 'src'
-$WxsV3 = Join-Path $PSScriptRoot 'CatalogScannerMaster.wxs'
-$WxsV4 = Join-Path $PSScriptRoot 'CatalogScannerMaster.wix4.wxs'
+$WxsV3 = Join-Path $PSScriptRoot 'DTMInventoryMaster.wxs'
+$WxsV4 = Join-Path $PSScriptRoot 'DTMInventoryMaster.wix4.wxs'
 $OutDir = Join-Path $Dist 'installer'
 $Stage = Join-Path $Dist 'msi-stage'
 
-if (-not (Test-Path $Bundle) -and -not (Test-Path (Join-Path $Payload 'catalog-scanner-master.cjs'))) {
+if (-not (Test-Path $Bundle) -and -not (Test-Path (Join-Path $Payload 'dtm-inventory-master.cjs'))) {
   throw "Missing bundle. Run: pnpm master:build"
 }
 
@@ -23,9 +23,10 @@ New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 
 # Stage runtime
 if (Test-Path $Bundle) {
-  Copy-Item $Bundle (Join-Path $Stage 'catalog-scanner-master.cjs') -Force
-} elseif (Test-Path (Join-Path $Payload 'catalog-scanner-master.cjs')) {
-  Copy-Item (Join-Path $Payload 'catalog-scanner-master.cjs') (Join-Path $Stage 'catalog-scanner-master.cjs') -Force
+  if (Test-Path $Bundle) { Copy-Item $Bundle (Join-Path $Stage 'dtm-inventory-master.cjs') -Force }
+elseif (Test-Path (Join-Path $Dist 'catalog-scanner-master.cjs')) { Copy-Item (Join-Path $Dist 'catalog-scanner-master.cjs') (Join-Path $Stage 'dtm-inventory-master.cjs') -Force }
+} elseif (Test-Path (Join-Path $Payload 'dtm-inventory-master.cjs')) {
+  Copy-Item (Join-Path $Payload 'dtm-inventory-master.cjs') (Join-Path $Stage 'dtm-inventory-master.cjs') -Force
 }
 
 # Stage Master GUI sources
@@ -37,10 +38,10 @@ Copy-Item $srcSource (Join-Path $Stage 'src') -Recurse -Force
 $vbs = @'
 Set sh = CreateObject("WScript.Shell")
 sh.CurrentDirectory = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
-dataDir = sh.ExpandEnvironmentStrings("%ProgramData%") & "\CatalogScanner"
+dataDir = sh.ExpandEnvironmentStrings("%ProgramData%") & "\DTMInventory"
 sh.Environment("Process")("CATALOG_SCANNER_DATA_DIR") = dataDir
 Set fso = CreateObject("Scripting.FileSystemObject")
-exe = sh.CurrentDirectory & "\CatalogScannerMaster.exe"
+exe = sh.CurrentDirectory & "\DTMInventoryMaster.exe"
 If fso.FileExists(exe) Then
   sh.Run """" & exe & """", 1, False
   WScript.Quit 0
@@ -55,12 +56,12 @@ If fso.FileExists(entry) Then
   End If
   WScript.Quit 0
 End If
-bundle = sh.CurrentDirectory & "\catalog-scanner-master.cjs"
+bundle = sh.CurrentDirectory & "\dtm-inventory-master.cjs"
 If fso.FileExists(bundle) Then
   sh.Run "node """ & bundle & """", 0, False
   WScript.Quit 0
 End If
-MsgBox "Catalog Scanner Master files are missing.", 16, "Catalog Scanner"
+MsgBox "DTM Inventory Master files are missing.", 16, "DTM Inventory"
 '@
 Set-Content -Path (Join-Path $Stage 'Launch Master.vbs') -Value $vbs -Encoding ASCII
 
@@ -75,12 +76,12 @@ Copy-Item (Join-Path $PSScriptRoot 'README-INSTALL.txt') (Join-Path $Stage 'READ
 # Minimal public placeholder so older wxs still validate if referenced
 $public = Join-Path $Stage 'public'
 New-Item -ItemType Directory -Force -Path $public | Out-Null
-Set-Content -Path (Join-Path $public 'index.html') -Value '<!doctype html><title>Catalog Scanner</title>' -Encoding ASCII
+Set-Content -Path (Join-Path $public 'index.html') -Value '<!doctype html><title>DTM Inventory</title>' -Encoding ASCII
 Set-Content -Path (Join-Path $public 'styles.css') -Value 'body{font-family:sans-serif}' -Encoding ASCII
 Set-Content -Path (Join-Path $public 'app.js') -Value '/* desktop app */' -Encoding ASCII
 
-if (Test-Path (Join-Path $Dist 'CatalogScannerMaster.exe')) {
-  Copy-Item (Join-Path $Dist 'CatalogScannerMaster.exe') (Join-Path $Stage 'CatalogScannerMaster.exe') -Force
+if (Test-Path (Join-Path $Dist 'DTMInventoryMaster.exe')) {
+  Copy-Item (Join-Path $Dist 'DTMInventoryMaster.exe') (Join-Path $Stage 'DTMInventoryMaster.exe') -Force
 }
 
 function Fail-NoMsi([string]$msg) {
@@ -96,7 +97,7 @@ if (-not $wixCmd) { $wixCmd = Get-Command wix.exe -ErrorAction SilentlyContinue 
 
 if ($wixCmd) {
   if (-not (Test-Path $WxsV4)) { throw "Missing $WxsV4" }
-  $msi = Join-Path $OutDir 'CatalogScannerMaster.msi'
+  $msi = Join-Path $OutDir 'DTMInventoryMaster.msi'
   if (Test-Path $msi) { Remove-Item $msi -Force }
   $wixExe = if ($wixCmd.Source) { $wixCmd.Source } else { $wixCmd.Path }
   Write-Host "Building MSI with WiX CLI: $wixExe"
@@ -124,10 +125,10 @@ if (-not $candleCmd -or -not $lightCmd) {
 
 $candleExe = if ($candleCmd.Source) { $candleCmd.Source } else { $candleCmd.FullName }
 $lightExe = if ($lightCmd.Source) { $lightCmd.Source } else { $lightCmd.FullName }
-$wixobj = Join-Path $OutDir 'CatalogScannerMaster.wixobj'
+$wixobj = Join-Path $OutDir 'DTMInventoryMaster.wixobj'
 & $candleExe -nologo -out $wixobj $WxsV3 "-dStageDir=$Stage"
 if ($LASTEXITCODE -ne 0) { Fail-NoMsi 'candle failed' }
-$msi = Join-Path $OutDir 'CatalogScannerMaster.msi'
+$msi = Join-Path $OutDir 'DTMInventoryMaster.msi'
 & $lightExe -nologo -out $msi $wixobj
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $msi)) { Fail-NoMsi 'light failed' }
 Write-Host "MSI ready: $msi"

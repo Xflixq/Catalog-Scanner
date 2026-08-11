@@ -25,7 +25,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 640,
     backgroundColor: '#ffffff',
-    title: 'Catalog Scanner Master',
+    title: 'DTM Inventory Master',
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -67,7 +67,7 @@ async function getTether() {
   const status = getStatus();
   const payload = JSON.stringify({
     v: 1,
-    kind: 'catalog-scanner-tether',
+    kind: 'dtm-inventory-tether',
     baseUrl: status.baseUrl,
   });
   const qrDataUrl = await QRCode.toDataURL(payload, {
@@ -115,7 +115,7 @@ function wireIpc() {
     const next = saveConfig(partial || {});
     return {
       ...next,
-      note: 'Saved. Restart Catalog Scanner Master for port or database path changes.',
+      note: 'Saved. Restart DTM Inventory Master for port or database path changes.',
     };
   });
   ipcMain.handle('master:pickDbPath', async () => {
@@ -137,7 +137,7 @@ app.whenReady().then(async () => {
     await bootService();
   } catch (err) {
     dialog.showErrorBox(
-      'Catalog Scanner Master',
+      'DTM Inventory Master',
       err instanceof Error ? err.message : String(err),
     );
     app.quit();

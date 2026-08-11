@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Build Master packaging artifacts:
- * - API bundle (catalog-scanner-master.cjs) for headless/service
+ * - API bundle (dtm-inventory-master.cjs) for headless/service
  * - Copy GUI sources into dist/gui-payload for Setup app
  * - Prefer electron-packager when available for Master + Setup EXEs
  */
@@ -15,7 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(root, '../..');
 const distDir = path.join(root, 'dist');
-const bundlePath = path.join(distDir, 'catalog-scanner-master.cjs');
+const bundlePath = path.join(distDir, 'dtm-inventory-master.cjs');
 
 fs.mkdirSync(distDir, { recursive: true });
 
@@ -88,13 +88,13 @@ fs.writeFileSync(bundlePath, bundled);
 const payloadDir = path.join(distDir, 'payload');
 if (fs.existsSync(payloadDir)) fs.rmSync(payloadDir, { recursive: true, force: true });
 fs.mkdirSync(payloadDir, { recursive: true });
-fs.copyFileSync(bundlePath, path.join(payloadDir, 'catalog-scanner-master.cjs'));
+fs.copyFileSync(bundlePath, path.join(payloadDir, 'dtm-inventory-master.cjs'));
 copyDir(path.join(root, 'src'), path.join(payloadDir, 'src'));
 fs.writeFileSync(
   path.join(payloadDir, 'package.json'),
   JSON.stringify(
     {
-      name: 'catalog-scanner-master-payload',
+      name: 'dtm-inventory-master-payload',
       private: true,
       type: 'module',
       main: 'src/gui/master/main.mjs',
@@ -145,7 +145,7 @@ if (hasBin('electron-packager')) {
   console.log('Packaging Master desktop app...');
   let r = spawnSync(
     pnpmCmd,
-    [...common, '--name', 'CatalogScannerMaster', '--electron-version', '33.2.1'],
+    [...common, '--name', 'DTMInventoryMaster', '--electron-version', '33.2.1'],
     { cwd: root, stdio: 'inherit', shell: true, env: process.env },
   );
   if (r.status !== 0) console.warn('Master electron-packager failed (optional)');
@@ -154,7 +154,7 @@ if (hasBin('electron-packager')) {
   // Temporary package.json main swap is hard; package whole module and document setup entry.
   r = spawnSync(
     pnpmCmd,
-    [...common, '--name', 'CatalogScannerSetup', '--electron-version', '33.2.1'],
+    [...common, '--name', 'DTMInventorySetup', '--electron-version', '33.2.1'],
     { cwd: root, stdio: 'inherit', shell: true, env: process.env },
   );
   if (r.status !== 0) console.warn('Setup electron-packager failed (optional)');
@@ -180,7 +180,7 @@ if (pkgCheck.status === 0) {
       '--targets',
       'node18-win-x64',
       '--output',
-      path.join(distDir, 'CatalogScannerMaster-API.exe'),
+      path.join(distDir, 'DTMInventoryMaster-API.exe'),
     ],
     { cwd: root, stdio: 'inherit', shell: true, env: process.env },
   );
@@ -188,7 +188,7 @@ if (pkgCheck.status === 0) {
     console.warn('pkg failed; Node API bundle still available');
   }
 } else {
-  console.log('pkg not installed. Headless API bundle at dist/catalog-scanner-master.cjs');
+  console.log('pkg not installed. Headless API bundle at dist/dtm-inventory-master.cjs');
 }
 
 console.log('Master build artifacts are in', distDir);

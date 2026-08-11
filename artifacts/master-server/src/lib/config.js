@@ -5,14 +5,17 @@ import path from 'node:path';
 const DEFAULT_PORT = 47821;
 
 export function getDataDir() {
+  if (process.env.DTM_INVENTORY_DATA_DIR) {
+    return path.resolve(process.env.DTM_INVENTORY_DATA_DIR);
+  }
   if (process.env.CATALOG_SCANNER_DATA_DIR) {
     return path.resolve(process.env.CATALOG_SCANNER_DATA_DIR);
   }
   if (process.platform === 'win32') {
     const base = process.env.PROGRAMDATA || 'C:\\ProgramData';
-    return path.join(base, 'CatalogScanner');
+    return path.join(base, 'DTMInventory');
   }
-  return path.join(os.homedir(), '.catalog-scanner');
+  return path.join(os.homedir(), '.dtm-inventory');
 }
 
 export function loadConfig() {

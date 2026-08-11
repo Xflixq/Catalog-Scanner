@@ -8,7 +8,7 @@ import { startMasterService } from './service.js';
 async function main() {
   const svc = await startMasterService();
   console.log('');
-  console.log('Catalog Scanner Master API (headless)');
+  console.log('DTM Inventory Master API (headless)');
   console.log('-------------------------------------');
   console.log(`LAN:      ${svc.baseUrl}`);
   console.log(`Local:    http://127.0.0.1:${svc.config.port}`);
