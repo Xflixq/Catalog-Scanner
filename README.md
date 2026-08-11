@@ -1,12 +1,21 @@
 # Catalog Scanner
 
-Local-first barcode catalog for web and Android (Expo).
+Portable barcode catalog system:
+
+- **Master PC** hosts the shared database and pairing console
+- **Android app** pairs once with a tether QR, then bulk-scans
+- **Web app** connects with a login code from the master
+- **Downloads page** serves built MSI / APK / portable packages locally
+
+Black / white UI on every surface.
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js 20+
 - pnpm
-- For Android device/emulator runs: Expo Go, or Android Studio / Android SDK for native builds
+- PowerShell 7+ (`pwsh`) for the one-command build
+- Optional for real MSI: [WiX Toolset](https://wixtoolset.org/) (`candle` / `light`)
+- Optional for real APK: Android Studio + JDK, or EAS CLI
 
 ## Install
 
@@ -14,89 +23,82 @@ Local-first barcode catalog for web and Android (Expo).
 pnpm install
 ```
 
-If you need to reinstall Expo for the Android workspace, use:
+## One-command build (PowerShell)
 
-```bash
-pnpm --filter @workspace/catalog-scanner-android add expo@~54.0.27
+From the repo root:
+
+```powershell
+pwsh -File scripts/build-all.ps1
 ```
 
-Do not use `npm install expo` at the repository root. This workspace is pnpm-managed and the root preinstall guard will stop npm on purpose.
+Useful flags:
 
-## Boot the web site
-
-The web app runs on port `20003`.
-
-```bash
-pnpm web:dev
-# or
-PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web dev
+```powershell
+pwsh -File scripts/build-all.ps1 -SkipApk
+pwsh -File scripts/build-all.ps1 -StartPortal
 ```
 
-Open the site at:
+This produces packages under:
 
-- http://localhost:20003/
+- `dist/downloads/`
+  - master portable zip / exe / msi (when WiX is installed)
+  - Android APK (when Android SDK/EAS is available)
+- `dist/downloads-portal/` small local webpage
 
-Production build:
+Start the downloads page:
 
-```bash
-PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web build
-PORT=20003 BASE_PATH=/ pnpm --filter @workspace/catalog-scanner-web serve
+```powershell
+pnpm downloads:dev
 ```
 
-## Boot the Android / Expo app
+Open http://127.0.0.1:47880
 
-The Expo app uses port `18900` by default.
+## Run live
+
+### Master PC
+
+```bash
+pnpm master:dev
+```
+
+Console: http://127.0.0.1:47821
+
+### Android
 
 ```bash
 pnpm android:dev
-# or
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev
 ```
 
-Useful variants:
+First boot: scan the master tether QR.
+
+Bulk scan behaviour:
+
+- aim one barcode inside the white target box
+- **2 second cooldown** after each accepted scan
+- last scanned code is shown clearly
+- same code again removes it from the batch
+- each saved item stores a **scanned date/time**
+
+### Web (other PCs)
 
 ```bash
-# LAN / local Metro (default)
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev
-
-# Tunnel when your phone is on a different network
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev:tunnel
-
-# Open Android emulator/device directly
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev:android
-
-# Web preview of the Expo app
-PORT=18900 pnpm --filter @workspace/catalog-scanner-android dev:web
+pnpm web:dev
 ```
 
-Checks:
+Connect with master URL + one-time login code.
+
+## Packaging commands
 
 ```bash
-pnpm --filter @workspace/catalog-scanner-android typecheck
-pnpm --filter @workspace/catalog-scanner-android run build
-pnpm --filter @workspace/catalog-scanner-android run serve
+pnpm master:build      # bundle master server
+pnpm master:msi        # MSI via WiX, or portable zip fallback
+pnpm android:apk       # APK best-effort (EAS local / Gradle / export fallback)
+pnpm downloads:build   # copy tiny downloads webpage
+pnpm build:all         # full PowerShell pipeline
 ```
-
-## APK build
-
-This workspace does not include a checked-in native Android project or an EAS build configuration, so an APK cannot be produced inside a plain container as-is.
-
-To build an APK on a machine that has the Android SDK installed:
-
-```bash
-cd artifacts/catalog-scanner-android
-npx expo prebuild --platform android
-cd android
-./gradlew assembleRelease
-```
-
-The APK is typically written under `android/app/build/outputs/apk/release/`.
-
-For a cloud build, configure Expo Application Services (`eas.json`) and run an Android build from there.
 
 ## Notes
 
-- The Android and web apps are both local-first.
-- The web site is configured for the root path `/`.
-- The Android static deployment uses `/catalog-scanner-android/` as its base path.
-- Keep Expo on SDK 54 (`expo@~54.0.27`) for the Android app. Do not install Expo 57 at the repo root.
+- Default master DB: `%ProgramData%\CatalogScanner\catalog.sqlite` on Windows
+- Allow inbound TCP `47821` on the master LAN firewall
+- If WiX or Android SDK are missing, the build still finishes with portable fallbacks and writes README notes into `dist/downloads/`

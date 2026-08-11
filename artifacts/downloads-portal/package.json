@@ -1,0 +1,11 @@
+{
+  "name": "@workspace/downloads-portal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-portal.mjs",
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
+  }
+}

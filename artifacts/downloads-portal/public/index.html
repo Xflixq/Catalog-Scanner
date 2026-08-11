@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catalog Scanner Downloads</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">LOCAL DOWNLOADS</p>
+        <h1>Catalog Scanner</h1>
+        <p class="muted">Small local page for master PC, Android, and helper packages produced by the one-command build.</p>
+      </header>
+
+      <section class="card">
+        <p class="eyebrow">PACKAGES</p>
+        <div id="list" class="list">Loading…</div>
+      </section>
+
+      <section class="card">
+        <p class="eyebrow">NOTES</p>
+        <ul class="notes">
+          <li>Master MSI / portable zip installs the shared database host.</li>
+          <li>Android APK pairs with the master via tether QR on first boot.</li>
+          <li>Rebuild anytime with <code>pwsh -File scripts/build-all.ps1</code>.</li>
+        </ul>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

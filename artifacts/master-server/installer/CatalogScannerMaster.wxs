@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+    Id="*"
+    Name="Catalog Scanner Master"
+    Language="1033"
+    Version="1.0.0"
+    Manufacturer="DTM Fabrications"
+    UpgradeCode="8F3C2A11-6B9E-4D2F-9C71-1A0E5B8D4F22">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="ProductFeature" Title="Catalog Scanner Master" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="PublicComponents" />
+    </Feature>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="CatalogScannerMaster">
+          <Directory Id="PUBLICFOLDER" Name="public" />
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Catalog Scanner Master" />
+      </Directory>
+    </Directory>
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="MainBundle" Guid="*">
+        <File Id="MasterCjs" Source="$(var.StageDir)\catalog-scanner-master.cjs" KeyPath="yes" />
+      </Component>
+      <Component Id="RunCmd" Guid="*">
+        <File Id="RunMasterCmd" Source="$(var.StageDir)\run-master.cmd" KeyPath="yes" />
+        <Shortcut
+          Id="StartMenuShortcut"
+          Directory="ApplicationProgramsFolder"
+          Name="Catalog Scanner Master"
+          Target="[INSTALLFOLDER]run-master.cmd"
+          WorkingDirectory="INSTALLFOLDER"
+          Advertise="no" />
+        <RemoveFolder Id="RemoveStartMenu" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\DTM\CatalogScannerMaster" Name="installed" Type="integer" Value="1" KeyPath="no" />
+      </Component>
+      <Component Id="Readme" Guid="*">
+        <File Id="ReadmeInstall" Source="$(var.StageDir)\README-INSTALL.txt" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!--
+      Public console assets are harvested at build time into the stage folder.
+      For simplicity this MSI includes the main launchers; the portable zip
+      always contains the full public/ tree. If candle/light harvest is needed,
+      extend with heat.exe.
+    -->
+    <ComponentGroup Id="PublicComponents" Directory="PUBLICFOLDER">
+      <Component Id="PublicIndex" Guid="*">
+        <File Id="PublicIndexHtml" Source="$(var.StageDir)\public\index.html" KeyPath="yes" />
+      </Component>
+      <Component Id="PublicCss" Guid="*">
+        <File Id="PublicStylesCss" Source="$(var.StageDir)\public\styles.css" KeyPath="yes" />
+      </Component>
+      <Component Id="PublicJs" Guid="*">
+        <File Id="PublicAppJs" Source="$(var.StageDir)\public\app.js" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Product>
+</Wix>
