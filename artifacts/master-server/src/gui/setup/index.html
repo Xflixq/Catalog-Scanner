@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catalog Scanner</title>
+    <link rel="stylesheet" href="../shared/tokens.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="rail">
+        <div class="rail-brand">
+          <p class="eyebrow">Catalog Scanner</p>
+          <h1>Master</h1>
+        </div>
+        <div class="rail-mark" aria-hidden="true">
+          <div class="mark-box"></div>
+          <div class="mark-lens"></div>
+        </div>
+        <p class="rail-foot muted">DTM Fabrications</p>
+      </aside>
+
+      <section class="panel">
+        <div id="stepWelcome" class="step">
+          <p class="eyebrow">Get started</p>
+          <h2 class="title">Set up this PC as Master</h2>
+          <p class="muted lead">
+            Master holds the shared catalog, shows the Android tether QR, and creates login codes for other PCs.
+            No browser required.
+          </p>
+          <ul class="bullets">
+            <li>Installs the Master app on this computer</li>
+            <li>Keeps the catalog database on this PC by default</li>
+            <li>Uses the same black and white design as the scanners</li>
+          </ul>
+          <div class="actions">
+            <button class="btn primary block" id="toLocation" type="button">Continue</button>
+          </div>
+        </div>
+
+        <div id="stepLocation" class="step hidden">
+          <p class="eyebrow">Location</p>
+          <h2 class="title">Where should it live?</h2>
+          <p class="muted lead">Choose a folder on this PC. You can leave the default.</p>
+          <label class="label">Install folder</label>
+          <div class="row">
+            <input id="installDir" class="input grow" readonly />
+            <button class="btn" id="browseInstall" type="button">Change</button>
+          </div>
+          <label class="check">
+            <input type="checkbox" id="startMenu" checked />
+            <span>Add to Start Menu</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="desktop" />
+            <span>Add desktop shortcut</span>
+          </label>
+          <div class="actions split">
+            <button class="btn" id="backWelcome" type="button">Back</button>
+            <button class="btn primary" id="toInstall" type="button">Install Master</button>
+          </div>
+        </div>
+
+        <div id="stepProgress" class="step hidden">
+          <p class="eyebrow">Working</p>
+          <h2 class="title">Installing Master</h2>
+          <p class="muted lead" id="progressText">Preparing files...</p>
+          <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+        </div>
+
+        <div id="stepDone" class="step hidden">
+          <p class="eyebrow">Ready</p>
+          <h2 class="title">Master is installed</h2>
+          <p class="muted lead">
+            Open Master to show the tether QR for Android and generate login codes for other PCs.
+          </p>
+          <p class="mono" id="donePath">-</p>
+          <div class="actions split">
+            <button class="btn" id="openFolder" type="button">Open folder</button>
+            <button class="btn primary" id="launchMaster" type="button">Open Master</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

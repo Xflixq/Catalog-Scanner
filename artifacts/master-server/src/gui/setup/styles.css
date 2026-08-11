@@ -1,0 +1,124 @@
+html, body { height: 100%; overflow: hidden; }
+.shell {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+}
+.rail {
+  background: #000;
+  color: #fff;
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid #000;
+}
+.rail .eyebrow { color: #fff; opacity: 0.7; }
+.rail h1 {
+  margin: 10px 0 0;
+  font-size: 2.4rem;
+  letter-spacing: -0.07em;
+  line-height: 0.92;
+  font-weight: 800;
+}
+.rail-mark {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 24px 0;
+}
+.mark-box {
+  position: absolute;
+  inset: 0;
+  border: 3px solid #fff;
+  border-radius: 18px;
+}
+.mark-lens {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  left: 28px;
+  top: 28px;
+}
+.mark-lens::after {
+  content: '';
+  position: absolute;
+  width: 28px;
+  height: 3px;
+  background: #fff;
+  right: -22px;
+  bottom: -8px;
+  transform: rotate(45deg);
+}
+.rail-foot { color: #bbb !important; font-size: 12px; }
+.panel {
+  padding: 34px 36px 28px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #fff;
+}
+.step { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.hidden { display: none !important; }
+.lead { margin: 14px 0 0; max-width: 42ch; }
+.bullets {
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+.bullets li {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--soft);
+  font-weight: 600;
+}
+.label {
+  display: block;
+  margin: 18px 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.grow { flex: 1; min-width: 0; }
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: #000;
+}
+.actions {
+  margin-top: auto;
+  padding-top: 28px;
+}
+.actions.split {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+.actions.split .btn.primary { min-width: 180px; }
+.bar {
+  margin-top: 28px;
+  height: 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: #fff;
+}
+.bar-fill {
+  height: 100%;
+  width: 8%;
+  background: #000;
+  transition: width 0.25s ease;
+}
+.mono { margin-top: 18px; }

@@ -12,6 +12,8 @@
     "android:apk": "pnpm --filter @workspace/catalog-scanner-android exec node ./scripts/build-apk.mjs",
     "web:dev": "pnpm --filter @workspace/catalog-scanner-web run dev",
     "master:dev": "pnpm --filter @workspace/master-server start",
+    "master:api": "pnpm --filter @workspace/master-server dev:api",
+    "setup:dev": "pnpm --filter @workspace/master-server setup:dev",
     "master:build": "pnpm --filter @workspace/master-server build:exe",
     "master:msi": "pnpm master:build && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-msi.ps1",
     "master:setup": "pnpm master:build && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-setup.ps1",

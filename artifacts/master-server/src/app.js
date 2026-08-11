@@ -53,10 +53,9 @@ function resolvePublicDir() {
 export function createApp(config) {
   const db = openDb(config.dbPath);
   const app = express();
-  const publicDir = resolvePublicDir();
   app.use(cors());
   app.use(express.json({ limit: '2mb' }));
-  app.use(express.static(publicDir));
+  // API only - Master UI is the native desktop GUI, not a browser page.
 
   function getMasterSecret() {
     return db.prepare(`SELECT value FROM meta WHERE key = 'master_secret'`).get()?.value;
@@ -279,11 +278,11 @@ export function createApp(config) {
     res.json(deleteGroup(db, req.params.id));
   });
 
-  // SPA fallback for master console (Express 5-safe)
-  app.use((req, res, next) => {
-    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
-    if (req.path.startsWith('/api/')) return next();
-    res.sendFile(path.join(publicDir, 'index.html'));
+  app.get('/', (_req, res) => {
+    res.json({
+      name: 'Catalog Scanner Master API',
+      note: 'Use the Catalog Scanner Master desktop app. This endpoint is for device pairing only.',
+    });
   });
 
   return { app, db };

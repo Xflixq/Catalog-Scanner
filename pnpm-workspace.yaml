@@ -64,6 +64,7 @@ autoInstallPeers: false
 # pnpm 10: only packages listed here may run install scripts
 onlyBuiltDependencies:
   - '@swc/core'
+  - electron
   - better-sqlite3
   - esbuild
   - msw
@@ -74,6 +75,7 @@ onlyBuiltDependencies:
 # `pnpm android:dev` aborts during the deps status check.
 allowBuilds:
   '@swc/core': true
+  electron: true
   better-sqlite3: true
   esbuild: true
   msw: true

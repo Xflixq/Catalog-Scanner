@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Portable Catalog Scanner master PC server (tether QR, login codes, shared DB)",
+  "description": "Catalog Scanner Master desktop app + pairing API",
   "bin": {
     "catalog-scanner-master": "./src/cli.js"
   },
   "scripts": {
-    "dev": "node src/cli.js",
-    "start": "node src/cli.js",
+    "dev": "electron src/gui/master/main.mjs",
+    "start": "electron src/gui/master/main.mjs",
+    "dev:api": "node src/cli.js",
+    "setup:dev": "electron src/gui/setup/main.mjs",
     "build:exe": "node scripts/build-exe.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -25,7 +27,9 @@
     "@types/express": "^5.0.6",
     "@types/node": "catalog:",
     "@types/qrcode": "^1.5.5",
+    "electron": "^33.2.1",
     "esbuild": "0.27.3",
     "typescript": "~5.9.2"
-  }
+  },
+  "main": "src/gui/master/main.mjs"
 }

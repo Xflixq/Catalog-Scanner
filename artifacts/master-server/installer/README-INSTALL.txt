@@ -1,74 +1,42 @@
 Catalog Scanner Master
 ======================
 
-What this is
-------------
-Portable master PC service for Catalog Scanner.
+This product is a desktop app (black/white GUI). There is no browser console.
 
-- Hosts the shared SQLite database (default on this PC)
-- Shows a tether QR for Android first-boot pairing
-- Generates one-time login codes for other PCs
-- Lets you relocate the database path if needed
+Apps
+----
+1) Catalog Scanner Setup
+   Product-style setup app (same design as Master).
+   Installs Master onto this PC.
 
-Install options
----------------
-A) Setup EXE (recommended — branded black/white wizard)
-   1. Run CatalogScannerMaster-Setup.exe
-   2. Finish the wizard (optionally launch Master)
-   3. Console opens at http://127.0.0.1:47821
+2) Catalog Scanner Master
+   Day-to-day app:
+   - Tether QR for Android
+   - Login codes for other PCs
+   - Shared catalog database
+   - Live grouped catalog
 
-   Build requires Inno Setup 6 on the build PC:
-     winget install JRSoftware.InnoSetup
-     then:  .\artifacts\master-server\installer\build-setup.ps1
-
-B) MSI (WiX)
-   1. Accept WiX EULA once if using WiX v7:  wix accept eula
-   2. Run CatalogScannerMaster.msi
-   Note: bare MSI UI is basic; prefer the Setup EXE.
-
-C) Portable zip (always produced)
-   1. Unzip CatalogScannerMaster-Portable.zip
-   2. Double-click run-master.cmd
-   3. Requires Node.js 20+ on PATH for the .cjs bundle
-      (or CatalogScannerMaster.exe if pkg produced one)
-
-Android first boot
-------------------
-1. Open the Android app
-2. Scan the Tether QR from the master console
-3. The phone stores the master URL + session and then opens the catalog
-
-Bulk scan tips
---------------
-- Aim one barcode inside the white target box
-- 2 second cooldown after each accepted scan
-- Same code again removes it from the batch
-- Each item stores a scanned date/time
-
-Other PCs
----------
-1. On the master console, click "Generate code"
-2. On the other PC web app, enter that login code
-3. The PC stays connected until the session is cleared
-
-Database location
+Portable packages
 -----------------
-Default:
-  Windows: %ProgramData%\CatalogScanner\catalog.sqlite
+- CatalogScanner-Setup.zip
+  Run "Catalog Scanner Setup.cmd"
 
-Change it in the master console under Database. Restart the master after saving.
+- CatalogScannerMaster-Portable.zip
+  Run "Catalog Scanner Master.cmd"
 
-Firewall
+Dev
+---
+  pnpm install
+  pnpm master:dev     # Master GUI
+  pnpm setup:dev      # Setup GUI
+  pnpm master:api     # headless pairing API only
+
+Network
+-------
+Master still listens on the LAN port (default 47821) so phones and other PCs
+can pair. Users never open that URL in a browser.
+
+Database
 --------
-Allow inbound TCP 47821 (or your configured port) on the master PC LAN profile.
-
-One-command rebuild
--------------------
-From the repo root on a Windows PC:
-
-  .\scripts\build-all.ps1
-
-Then open the downloads page:
-
-  pnpm downloads:dev
-  http://127.0.0.1:47880
+Windows default: %ProgramData%\CatalogScanner\catalog.sqlite
+Change inside Master -> Storage.
