@@ -16,15 +16,31 @@ import {
   ensureName,
 } from './lib/catalog.js';
 
-const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-// When running from src/: public is ./public
-// When running packaged bundle from dist/: public is sibling ./public
-const publicDirCandidates = [
-  path.join(moduleDir, 'public'),
-  path.join(moduleDir, '../public'),
-  path.join(process.cwd(), 'public'),
-];
+function resolveModuleDir() {
+  // Prefer CJS __dirname (injected by the bundle banner). Fall back for ESM src.
+  try {
+    // eslint-disable-next-line no-undef
+    if (typeof __dirname === 'string' && __dirname) return __dirname;
+  } catch {
+    // ignore
+  }
+  try {
+    return path.dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return process.cwd();
+  }
+}
+
 function resolvePublicDir() {
+  const moduleDir = resolveModuleDir();
+  // When running from src/: public is ./public
+  // When running packaged bundle from dist/: public is sibling ./public
+  const publicDirCandidates = [
+    path.join(moduleDir, 'public'),
+    path.join(moduleDir, '../public'),
+    path.join(process.cwd(), 'public'),
+    path.join(process.cwd(), 'dist', 'public'),
+  ];
   for (const candidate of publicDirCandidates) {
     if (fs.existsSync(path.join(candidate, 'index.html'))) return candidate;
   }

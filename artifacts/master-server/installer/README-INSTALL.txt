@@ -13,6 +13,9 @@ Portable master PC service for Catalog Scanner.
 Install options
 ---------------
 A) MSI (when WiX is installed during build)
+   WiX v7:  dotnet tool install -g wix
+            then OPEN A NEW terminal so PATH includes %USERPROFILE%\.dotnet\tools
+   WiX v3:  install WiX Toolset (candle/light) as Administrator
    1. Run CatalogScannerMaster.msi
    2. Start "Catalog Scanner Master" from the Start Menu
 

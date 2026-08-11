@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Catalog Scanner Master"
+    Manufacturer="DTM Fabrications"
+    Version="1.0.0"
+    UpgradeCode="8F3C2A11-6B9E-4D2F-9C71-1A0E5B8D4F22"
+    Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="CatalogScannerMaster">
+        <Directory Id="PUBLICFOLDER" Name="public" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Catalog Scanner Master" />
+    </StandardDirectory>
+
+    <Feature Id="ProductFeature" Title="Catalog Scanner Master" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="PublicComponents" />
+    </Feature>
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="MainBundle" Guid="*">
+        <File Id="MasterCjs" Source="$(StageDir)\catalog-scanner-master.cjs" KeyPath="yes" />
+      </Component>
+      <Component Id="RunCmd" Guid="*">
+        <File Id="RunMasterCmd" Source="$(StageDir)\run-master.cmd" KeyPath="yes" />
+        <Shortcut
+          Id="StartMenuShortcut"
+          Directory="ApplicationProgramsFolder"
+          Name="Catalog Scanner Master"
+          Target="[INSTALLFOLDER]run-master.cmd"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveStartMenu" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\DTM\CatalogScannerMaster" Name="installed" Type="integer" Value="1" />
+      </Component>
+      <Component Id="Readme" Guid="*">
+        <File Id="ReadmeInstall" Source="$(StageDir)\README-INSTALL.txt" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="PublicComponents" Directory="PUBLICFOLDER">
+      <Component Id="PublicIndex" Guid="*">
+        <File Id="PublicIndexHtml" Source="$(StageDir)\public\index.html" KeyPath="yes" />
+      </Component>
+      <Component Id="PublicCss" Guid="*">
+        <File Id="PublicStylesCss" Source="$(StageDir)\public\styles.css" KeyPath="yes" />
+      </Component>
+      <Component Id="PublicJs" Guid="*">
+        <File Id="PublicAppJs" Source="$(StageDir)\public\app.js" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Package>
+</Wix>
