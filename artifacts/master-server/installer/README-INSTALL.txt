@@ -12,21 +12,25 @@ Portable master PC service for Catalog Scanner.
 
 Install options
 ---------------
-A) MSI (when WiX is installed during build)
-   WiX v7:  dotnet tool install -g wix
-            then OPEN A NEW terminal so PATH includes %USERPROFILE%\.dotnet\tools
-   WiX v3:  install WiX Toolset (candle/light) as Administrator
-   1. Run CatalogScannerMaster.msi
-   2. Start "Catalog Scanner Master" from the Start Menu
+A) Setup EXE (recommended — branded black/white wizard)
+   1. Run CatalogScannerMaster-Setup.exe
+   2. Finish the wizard (optionally launch Master)
+   3. Console opens at http://127.0.0.1:47821
 
-B) Portable zip (always produced by the build)
+   Build requires Inno Setup 6 on the build PC:
+     winget install JRSoftware.InnoSetup
+     then:  .\artifacts\master-server\installer\build-setup.ps1
+
+B) MSI (WiX)
+   1. Accept WiX EULA once if using WiX v7:  wix accept eula
+   2. Run CatalogScannerMaster.msi
+   Note: bare MSI UI is basic; prefer the Setup EXE.
+
+C) Portable zip (always produced)
    1. Unzip CatalogScannerMaster-Portable.zip
    2. Double-click run-master.cmd
    3. Requires Node.js 20+ on PATH for the .cjs bundle
       (or CatalogScannerMaster.exe if pkg produced one)
-
-3. Open the console URL shown (usually http://127.0.0.1:47821)
-4. Keep this PC on while scanners / other PCs are connected
 
 Android first boot
 ------------------
@@ -62,7 +66,7 @@ One-command rebuild
 -------------------
 From the repo root on a Windows PC:
 
-  pwsh -File scripts/build-all.ps1
+  .\scripts\build-all.ps1
 
 Then open the downloads page:
 

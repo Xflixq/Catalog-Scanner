@@ -95,10 +95,14 @@ Invoke-Step 'Build master server bundle' {
 }
 
 if (-not $SkipMsi) {
-  Invoke-Step 'Build master MSI (or portable fallback)' {
+  Invoke-Step 'Build master installer (EXE preferred, MSI/portable fallback)' {
+    $setupScript = Join-Root 'artifacts','master-server','installer','build-setup.ps1'
     $msiScript = Join-Root 'artifacts','master-server','installer','build-msi.ps1'
-    # Call the current host (powershell.exe or pwsh) — do not require pwsh.
-    & $msiScript
+    if (Test-Path $setupScript) {
+      & $setupScript
+    } else {
+      & $msiScript
+    }
     $msiDir = Join-Root 'artifacts','master-server','dist','installer'
     $destDir = Join-Root 'dist','downloads'
     if (Test-Path $msiDir) {

@@ -14,6 +14,7 @@
     "master:dev": "pnpm --filter @workspace/master-server start",
     "master:build": "pnpm --filter @workspace/master-server build:exe",
     "master:msi": "pnpm master:build && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-msi.ps1",
+    "master:setup": "pnpm master:build && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-setup.ps1",
     "downloads:build": "pnpm --filter @workspace/downloads-portal build",
     "downloads:dev": "pnpm --filter @workspace/downloads-portal start",
     "build:all": "node ./scripts/run-ps1.mjs scripts/build-all.ps1",
