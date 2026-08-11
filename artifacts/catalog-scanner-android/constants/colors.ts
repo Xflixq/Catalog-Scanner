@@ -1,59 +1,38 @@
 /**
- * Semantic design tokens for the mobile app.
- *
- * These tokens mirror the naming conventions used in web artifacts (index.css)
- * so that multi-artifact projects share a cohesive visual identity.
- *
- * Replace the placeholder values below with values that match the project's
- * brand. If a sibling web artifact exists, read its index.css and convert the
- * HSL values to hex so both artifacts use the same palette.
- *
- * To add dark mode, add a `dark` key with the same token names.
- * The useColors() hook will automatically pick it up.
+ * Black / white design tokens matching the web catalog UI (index.css).
+ * Light-only — Expo Go and the website stay on the same monochrome finish.
  */
 
 const colors = {
   light: {
-    // Legacy aliases (kept for backward compatibility)
-    text: '#18343B',
-    tint: '#B86340',
+    text: '#000000',
+    tint: '#000000',
 
-    // Core surfaces
-    background: '#F4EFE6',
-    foreground: '#18343B',
+    background: '#FFFFFF',
+    foreground: '#000000',
 
-    // Cards / elevated surfaces
-    card: '#FFFDF8',
-    cardForeground: '#18343B',
+    card: '#FFFFFF',
+    cardForeground: '#000000',
 
-    // Primary action color (buttons, links, active states)
-    primary: '#18343B',
-    primaryForeground: '#FFFDF8',
+    primary: '#000000',
+    primaryForeground: '#FFFFFF',
 
-    // Secondary / less-emphasis interactive surfaces
-    secondary: '#E8DED1',
-    secondaryForeground: '#18343B',
+    secondary: '#F2F2F2',
+    secondaryForeground: '#000000',
 
-    // Muted / subdued elements (dividers, timestamps, placeholders)
-    muted: '#E8DED1',
-    mutedForeground: '#617579',
+    muted: '#F2F2F2',
+    mutedForeground: '#333333',
 
-    // Accent highlights (badges, selected items, focus rings)
-    accent: '#B86340',
-    accentForeground: '#FFFDF8',
+    accent: '#000000',
+    accentForeground: '#FFFFFF',
 
-    // Destructive actions (delete, error states)
-    destructive: '#A84339',
-    destructiveForeground: '#FFFDF8',
+    destructive: '#000000',
+    destructiveForeground: '#FFFFFF',
 
-    // Borders and input outlines
-    border: '#D8C9BA',
-    input: '#CBB9A9',
+    border: '#262626',
+    input: '#262626',
   },
-
-  // Border radius (in px). Sync from the sibling web artifact's --radius
-  // CSS variable. This value applies to cards, buttons, inputs, and modals.
-  radius: 8,
+  radius: 14,
 };
 
 export default colors;
