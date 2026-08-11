@@ -7,6 +7,7 @@ import QRCode from 'qrcode';
 import { makeLoginCode, nowIso } from '../../lib/db.js';
 import { listGroupedCatalog } from '../../lib/catalog.js';
 import { pickPrimaryLanIp } from '../../lib/network.js';
+import { DEFAULT_TIMEOUT_MS, withTimeout } from '../../lib/timeout.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 nativeTheme.themeSource = 'light';
@@ -134,7 +135,7 @@ function wireIpc() {
 
 app.whenReady().then(async () => {
   try {
-    await bootService();
+    await withTimeout(bootService(), DEFAULT_TIMEOUT_MS, 'Master startup');
   } catch (err) {
     dialog.showErrorBox(
       'DTM Inventory Master',

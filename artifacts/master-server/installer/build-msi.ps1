@@ -1,8 +1,9 @@
 # Build DTMInventoryMaster.msi (primary end-user package).
 # Supports WiX v7 `wix` CLI and classic candle/light.
-# No zip-first path.
+# External tools are hard-capped at 30 seconds.
 
 $ErrorActionPreference = 'Stop'
+$TimeoutSec = 30
 $Root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $Dist = Join-Path $Root 'dist'
 $Bundle = Join-Path $Dist 'dtm-inventory-master.cjs'
@@ -13,6 +14,20 @@ $WxsV4 = Join-Path $PSScriptRoot 'DTMInventoryMaster.wix4.wxs'
 $OutDir = Join-Path $Dist 'installer'
 $Stage = Join-Path $Dist 'msi-stage'
 
+function Invoke-Timed {
+  param(
+    [Parameter(Mandatory=$true)][string]$FilePath,
+    [Parameter(Mandatory=$true)][string[]]$ArgumentList,
+    [string]$Name = 'process'
+  )
+  $p = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -PassThru -NoNewWindow
+  if (-not $p.WaitForExit($TimeoutSec * 1000)) {
+    try { $p.Kill() } catch {}
+    throw "$Name timed out after ${TimeoutSec}s"
+  }
+  return $p.ExitCode
+}
+
 if (-not (Test-Path $Bundle) -and -not (Test-Path (Join-Path $Payload 'dtm-inventory-master.cjs'))) {
   throw "Missing bundle. Run: pnpm master:build"
 }
@@ -21,59 +36,22 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 if (Test-Path $Stage) { Remove-Item -Recurse -Force $Stage }
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 
-# Stage runtime
 if (Test-Path $Bundle) {
-  if (Test-Path $Bundle) { Copy-Item $Bundle (Join-Path $Stage 'dtm-inventory-master.cjs') -Force }
-elseif (Test-Path (Join-Path $Dist 'dtm-inventory-master.cjs')) { Copy-Item (Join-Path $Dist 'dtm-inventory-master.cjs') (Join-Path $Stage 'dtm-inventory-master.cjs') -Force }
+  Copy-Item $Bundle (Join-Path $Stage 'dtm-inventory-master.cjs') -Force
 } elseif (Test-Path (Join-Path $Payload 'dtm-inventory-master.cjs')) {
   Copy-Item (Join-Path $Payload 'dtm-inventory-master.cjs') (Join-Path $Stage 'dtm-inventory-master.cjs') -Force
+} elseif (Test-Path (Join-Path $Dist 'catalog-scanner-master.cjs')) {
+  Copy-Item (Join-Path $Dist 'catalog-scanner-master.cjs') (Join-Path $Stage 'dtm-inventory-master.cjs') -Force
 }
 
-# Stage Master GUI sources
 $srcSource = $Src
 if (Test-Path (Join-Path $Payload 'src')) { $srcSource = Join-Path $Payload 'src' }
 Copy-Item $srcSource (Join-Path $Stage 'src') -Recurse -Force
 
-# Silent launcher (no console)
-$vbs = @'
-Set sh = CreateObject("WScript.Shell")
-sh.CurrentDirectory = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
-dataDir = sh.ExpandEnvironmentStrings("%ProgramData%") & "\DTMInventory"
-sh.Environment("Process")("CATALOG_SCANNER_DATA_DIR") = dataDir
-Set fso = CreateObject("Scripting.FileSystemObject")
-exe = sh.CurrentDirectory & "\DTMInventoryMaster.exe"
-If fso.FileExists(exe) Then
-  sh.Run """" & exe & """", 1, False
-  WScript.Quit 0
-End If
-entry = sh.CurrentDirectory & "\src\gui\master\main.mjs"
-If fso.FileExists(entry) Then
-  localElectron = sh.CurrentDirectory & "\node_modules\electron\cli.js"
-  If fso.FileExists(localElectron) Then
-    sh.Run "node """ & localElectron & """ """ & entry & """", 0, False
-  Else
-    sh.Run "cmd /c npx --yes electron@33.2.1 """ & entry & """", 0, False
-  End If
-  WScript.Quit 0
-End If
-bundle = sh.CurrentDirectory & "\dtm-inventory-master.cjs"
-If fso.FileExists(bundle) Then
-  sh.Run "node """ & bundle & """", 0, False
-  WScript.Quit 0
-End If
-MsgBox "DTM Inventory Master files are missing.", 16, "DTM Inventory"
-'@
-Set-Content -Path (Join-Path $Stage 'Launch Master.vbs') -Value $vbs -Encoding ASCII
-
-# Keep a tiny hidden helper for MSI shortcut target flexibility
-$cmd = @'
-@echo off
-wscript //B "%~dp0Launch Master.vbs"
-'@
-Set-Content -Path (Join-Path $Stage 'run-master.cmd') -Value $cmd -Encoding ASCII
+Copy-Item (Join-Path $PSScriptRoot 'Launch Master.vbs') (Join-Path $Stage 'Launch Master.vbs') -Force
+Copy-Item (Join-Path $PSScriptRoot 'run-master.cmd') (Join-Path $Stage 'run-master.cmd') -Force
 Copy-Item (Join-Path $PSScriptRoot 'README-INSTALL.txt') (Join-Path $Stage 'README-INSTALL.txt') -Force
 
-# Minimal public placeholder so older wxs still validate if referenced
 $public = Join-Path $Stage 'public'
 New-Item -ItemType Directory -Force -Path $public | Out-Null
 Set-Content -Path (Join-Path $public 'index.html') -Value '<!doctype html><title>DTM Inventory</title>' -Encoding ASCII
@@ -102,11 +80,8 @@ if ($wixCmd) {
   $wixExe = if ($wixCmd.Source) { $wixCmd.Source } else { $wixCmd.Path }
   Write-Host "Building MSI with WiX CLI: $wixExe"
   try { & $wixExe accept eula 2>$null | Out-Null } catch {}
-  try { & $wixExe extension add WixToolset.UI.wixext 2>$null | Out-Null } catch {}
-  & $wixExe build $WxsV4 -d "StageDir=$Stage" -o $msi -arch x64
-  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $msi)) {
-    Fail-NoMsi 'wix build failed.'
-  }
+  $code = Invoke-Timed -FilePath $wixExe -Name 'wix build' -ArgumentList @('build', $WxsV4, '-d', "StageDir=$Stage", '-o', $msi, '-arch', 'x64')
+  if ($code -ne 0 -or -not (Test-Path $msi)) { Fail-NoMsi "wix build failed (exit $code)." }
   Write-Host "MSI ready: $msi"
   exit 0
 }
@@ -126,9 +101,9 @@ if (-not $candleCmd -or -not $lightCmd) {
 $candleExe = if ($candleCmd.Source) { $candleCmd.Source } else { $candleCmd.FullName }
 $lightExe = if ($lightCmd.Source) { $lightCmd.Source } else { $lightCmd.FullName }
 $wixobj = Join-Path $OutDir 'DTMInventoryMaster.wixobj'
-& $candleExe -nologo -out $wixobj $WxsV3 "-dStageDir=$Stage"
-if ($LASTEXITCODE -ne 0) { Fail-NoMsi 'candle failed' }
+$code = Invoke-Timed -FilePath $candleExe -Name 'candle' -ArgumentList @('-nologo', '-out', $wixobj, $WxsV3, "-dStageDir=$Stage")
+if ($code -ne 0) { Fail-NoMsi 'candle failed' }
 $msi = Join-Path $OutDir 'DTMInventoryMaster.msi'
-& $lightExe -nologo -out $msi $wixobj
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path $msi)) { Fail-NoMsi 'light failed' }
+$code = Invoke-Timed -FilePath $lightExe -Name 'light' -ArgumentList @('-nologo', '-out', $msi, $wixobj)
+if ($code -ne 0 -or -not (Test-Path $msi)) { Fail-NoMsi 'light failed' }
 Write-Host "MSI ready: $msi"

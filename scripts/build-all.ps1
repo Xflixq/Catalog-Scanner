@@ -12,6 +12,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$TimeoutSec = 30
 $Root = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $Root
 

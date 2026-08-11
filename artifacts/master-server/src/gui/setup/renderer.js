@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const TIMEOUT_MS = 30_000;
 let state = {
   installDir: '',
   dataDir: '',
@@ -29,8 +30,16 @@ function appendLog(line) {
   drawer.scrollTop = drawer.scrollHeight;
 }
 
+function withTimeout(promise, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after 30s`)), TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function boot() {
-  const d = await window.setup.defaults();
+  const d = await withTimeout(window.setup.defaults(), 'Startup');
   state.installDir = d.installDir;
   state.dataDir = d.dataDir;
   $('installDir').value = d.installDir;
@@ -46,10 +55,14 @@ $('toLocation').addEventListener('click', () => show('stepLocation'));
 $('backWelcome').addEventListener('click', () => show('stepWelcome'));
 
 $('browseInstall').addEventListener('click', async () => {
-  const p = await window.setup.pickInstallDir(state.installDir);
-  if (p) {
-    state.installDir = p;
-    $('installDir').value = p;
+  try {
+    const p = await withTimeout(window.setup.pickInstallDir(state.installDir), 'Folder picker');
+    if (p) {
+      state.installDir = p;
+      $('installDir').value = p;
+    }
+  } catch (e) {
+    appendLog(e.message || String(e));
   }
 });
 
@@ -68,17 +81,20 @@ $('toInstall').addEventListener('click', async () => {
   show('stepProgress');
   setProgress(4, 'Setting things up...');
   try {
-    const result = await window.setup.install({
-      installDir: state.installDir,
-      dataDir: state.dataDir,
-      startMenu: $('startMenu').checked,
-      desktop: $('desktop').checked,
-    });
+    const result = await withTimeout(
+      window.setup.install({
+        installDir: state.installDir,
+        dataDir: state.dataDir,
+        startMenu: $('startMenu').checked,
+        desktop: $('desktop').checked,
+      }),
+      'Install',
+    );
     setProgress(100, 'Finished');
     state.launchPath = result.launchPath;
     state.installDir = result.installDir || state.installDir;
     $('donePath').textContent = state.installDir;
-    await new Promise((r) => setTimeout(r, 350));
+    await new Promise((r) => setTimeout(r, 250));
     show('stepDone');
   } catch (e) {
     appendLog(e.message || String(e));
@@ -86,17 +102,19 @@ $('toInstall').addEventListener('click', async () => {
     $('logDrawer').classList.remove('hidden');
     $('toggleLogs').textContent = 'Hide logs';
     $('progressText').textContent = 'Something went wrong';
-    // Stay on progress so logs are visible; offer back via location after alert-less UX
-    setTimeout(() => show('stepLocation'), 1200);
+    setTimeout(() => show('stepLocation'), 900);
   }
 });
 
 $('launchMaster').addEventListener('click', async () => {
   try {
-    await window.setup.launch(state.launchPath);
+    await withTimeout(window.setup.launch(state.launchPath), 'Launch');
     window.close();
   } catch (e) {
     appendLog(e.message || String(e));
+    state.logsVisible = true;
+    $('logDrawer').classList.remove('hidden');
+    $('toggleLogs').textContent = 'Hide logs';
   }
 });
 

@@ -1,11 +1,9 @@
 # Build DTM Inventory product packages.
 # Primary user deliverable: DTMInventoryMaster.msi
-# Setup GUI is for in-product install experience during development.
-#
-# Usage:
-#   .\artifacts\master-server\installer\build-setup.ps1
+# External tools hard-capped at 30 seconds by build-msi.ps1.
 
 $ErrorActionPreference = 'Stop'
+$TimeoutSec = 30
 $InstallerDir = $PSScriptRoot
 $Root = Resolve-Path (Join-Path $InstallerDir '..')
 $Dist = Join-Path $Root 'dist'
@@ -19,13 +17,12 @@ if (-not (Test-Path $Bundle) -and -not (Test-Path $Payload)) {
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
-# Always try MSI first (no zip-first flow)
 $msiScript = Join-Path $InstallerDir 'build-msi.ps1'
 if (Test-Path $msiScript) {
-  Write-Host 'Building MSI (primary package)...'
+  Write-Host 'Building MSI (primary package, 30s tool timeout)...'
   & $msiScript
 } else {
-  Write-Host 'build-msi.ps1 missing'
+  throw 'build-msi.ps1 missing'
 }
 
 # Copy any desktop EXEs if electron-packager produced them
@@ -40,7 +37,6 @@ if (Test-Path $desktop) {
   }
 }
 
-# Remove legacy zip packages from downloads-facing installer folder
 Get-ChildItem $OutDir -Filter *.zip -ErrorAction SilentlyContinue | ForEach-Object {
   Write-Host "Removing zip package $($_.Name) (MSI-first product flow)"
   Remove-Item $_.FullName -Force

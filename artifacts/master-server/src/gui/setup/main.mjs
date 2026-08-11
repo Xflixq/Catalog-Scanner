@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
+import { DEFAULT_TIMEOUT_MS, withTimeout } from '../../lib/timeout.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 nativeTheme.themeSource = 'light';
@@ -46,8 +47,13 @@ function resolvePayloadDir() {
   ];
   for (const c of candidates) {
     if (!c) continue;
-    if (fs.existsSync(path.join(c, 'dtm-inventory-master.cjs')) || fs.existsSync(path.join(c, 'dtm-inventory-master.cjs'))) return c;
-    if (fs.existsSync(path.join(c, 'src', 'gui', 'master', 'main.mjs'))) return c;
+    if (
+      fs.existsSync(path.join(c, 'dtm-inventory-master.cjs')) ||
+      fs.existsSync(path.join(c, 'catalog-scanner-master.cjs')) ||
+      fs.existsSync(path.join(c, 'src', 'gui', 'master', 'main.mjs'))
+    ) {
+      return c;
+    }
   }
   return path.resolve(__dirname, '../../../dist');
 }
@@ -65,14 +71,14 @@ function copyDir(src, dest) {
 }
 
 function writeSilentMasterLauncher(installDir, dataDir) {
-  // VBS launcher: no console window.
   if (process.platform === 'win32') {
     const vbs = [
       'Set sh = CreateObject("WScript.Shell")',
       `sh.CurrentDirectory = "${installDir.replace(/\\/g, '\\\\')}"`,
+      `sh.Environment("Process")("DTM_INVENTORY_DATA_DIR") = "${dataDir.replace(/\\/g, '\\\\')}"`,
       `sh.Environment("Process")("CATALOG_SCANNER_DATA_DIR") = "${dataDir.replace(/\\/g, '\\\\')}"`,
-      'exe = sh.CurrentDirectory & "\\DTMInventoryMaster.exe"',
       'Set fso = CreateObject("Scripting.FileSystemObject")',
+      'exe = sh.CurrentDirectory & "\\DTMInventoryMaster.exe"',
       'If fso.FileExists(exe) Then',
       '  sh.Run """" & exe & """", 1, False',
       '  WScript.Quit 0',
@@ -95,39 +101,24 @@ function writeSilentMasterLauncher(installDir, dataDir) {
       'MsgBox "DTM Inventory Master files are missing.", 16, "DTM Inventory"',
     ].join('\r\n');
     fs.writeFileSync(path.join(installDir, 'Launch Master.vbs'), vbs, 'utf8');
-
-    // Optional hidden helper cmd for advanced users only (not used by UI)
-    const cmd = [
-      '@echo off',
-      'setlocal EnableExtensions',
-      `set "CATALOG_SCANNER_DATA_DIR=${dataDir}"`,
-      'cd /d "%~dp0"',
-      'if exist "%~dp0DTMInventoryMaster.exe" (',
-      '  start "" "%~dp0DTMInventoryMaster.exe"',
-      '  exit /b 0',
-      ')',
-      'wscript //B "%~dp0Launch Master.vbs"',
-      'exit /b 0',
-    ].join('\r\n');
-    fs.writeFileSync(path.join(installDir, 'run-master.cmd'), cmd, 'utf8');
+    fs.writeFileSync(
+      path.join(installDir, 'run-master.cmd'),
+      '@echo off\r\nwscript //B "%~dp0Launch Master.vbs"\r\n',
+      'utf8',
+    );
     return path.join(installDir, 'Launch Master.vbs');
   }
 
   const sh = `#!/usr/bin/env bash
 cd "$(dirname "$0")"
+export DTM_INVENTORY_DATA_DIR="${dataDir}"
 export CATALOG_SCANNER_DATA_DIR="${dataDir}"
-if [ -f ./DTMInventoryMaster ]; then
-  exec ./DTMInventoryMaster
-fi
+if [ -f ./DTMInventoryMaster ]; then exec ./DTMInventoryMaster; fi
 if [ -f src/gui/master/main.mjs ]; then
-  if command -v electron >/dev/null 2>&1; then
-    exec electron src/gui/master/main.mjs
-  fi
+  if command -v electron >/dev/null 2>&1; then exec electron src/gui/master/main.mjs; fi
   exec npx --yes electron@33.2.1 src/gui/master/main.mjs
 fi
-if [ -f dtm-inventory-master.cjs ]; then
-  exec node dtm-inventory-master.cjs
-fi
+if [ -f dtm-inventory-master.cjs ]; then exec node dtm-inventory-master.cjs; fi
 echo Master files missing
 exit 1
 `;
@@ -138,7 +129,6 @@ exit 1
 }
 
 function createShortcutWindows(targetPath, shortcutPath, workDir, description) {
-  // PowerShell hidden window
   const ps = [
     `$ws = New-Object -ComObject WScript.Shell`,
     `$s = $ws.CreateShortcut('${shortcutPath.replace(/'/g, "''")}')`,
@@ -149,10 +139,11 @@ function createShortcutWindows(targetPath, shortcutPath, workDir, description) {
     `$s.WindowStyle = 7`,
     `$s.Save()`,
   ].join('; ');
+  // Hard 30s timeout so shortcut creation never hangs the installer UI.
   spawnSync(
     'powershell.exe',
     ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', ps],
-    { windowsHide: true, stdio: 'ignore' },
+    { windowsHide: true, stdio: 'ignore', timeout: DEFAULT_TIMEOUT_MS, killSignal: 'SIGKILL' },
   );
 }
 
@@ -164,7 +155,7 @@ function writeStartMenuShortcut(installDir, launchPath) {
     'Windows',
     'Start Menu',
     'Programs',
-    'DTM Inventory Master',
+    'DTM Inventory',
   );
   fs.mkdirSync(programs, { recursive: true });
   createShortcutWindows(
@@ -221,25 +212,30 @@ async function performInstall(opts = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
   log('Folders ready', 22, 'Copying files...');
 
-  const bundle = fs.existsSync(path.join(payload, 'dtm-inventory-master.cjs')) ? path.join(payload, 'dtm-inventory-master.cjs') : path.join(payload, 'dtm-inventory-master.cjs');
+  const bundleCandidates = [
+    path.join(payload, 'dtm-inventory-master.cjs'),
+    path.join(payload, 'catalog-scanner-master.cjs'),
+  ];
+  const bundle = bundleCandidates.find((p) => fs.existsSync(p));
   const srcFromPayload = path.join(payload, 'src');
   const srcFromRepo = path.resolve(__dirname, '../..');
 
-  if (fs.existsSync(bundle)) {
+  if (bundle) {
     fs.copyFileSync(bundle, path.join(installDir, 'dtm-inventory-master.cjs'));
     log('Copied service bundle', 40);
   } else {
     log('Service bundle not found in payload (ok if GUI-only)', 40);
   }
 
-  const srcSource = fs.existsSync(srcFromPayload) ? srcFromPayload : srcFromRepo;
+  const srcSource = fs.existsSync(path.join(srcFromPayload, 'gui', 'master', 'main.mjs'))
+    ? srcFromPayload
+    : srcFromRepo;
   if (!fs.existsSync(path.join(srcSource, 'gui', 'master', 'main.mjs'))) {
     throw new Error('Master app files were not found in the setup package.');
   }
   copyDir(srcSource, path.join(installDir, 'src'));
   log('Copied Master app', 62, 'Configuring...');
 
-  // package marker
   fs.writeFileSync(
     path.join(installDir, 'package.json'),
     JSON.stringify(
@@ -254,14 +250,19 @@ async function performInstall(opts = {}) {
     ),
   );
 
-  // Seed config
   const configPath = path.join(dataDir, 'config.json');
-  const config = {
-    port: 47821,
-    host: '0.0.0.0',
-    dbPath: path.join(dataDir, 'catalog.sqlite'),
-  };
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  fs.writeFileSync(
+    configPath,
+    JSON.stringify(
+      {
+        port: 47821,
+        host: '0.0.0.0',
+        dbPath: path.join(dataDir, 'catalog.sqlite'),
+      },
+      null,
+      2,
+    ),
+  );
   log(`Wrote config ${configPath}`, 74);
 
   const launchPath = writeSilentMasterLauncher(installDir, dataDir);
@@ -277,12 +278,7 @@ async function performInstall(opts = {}) {
   }
 
   log('Install complete', 100, 'Finished');
-  return {
-    ok: true,
-    installDir,
-    dataDir,
-    launchPath,
-  };
+  return { ok: true, installDir, dataDir, launchPath };
 }
 
 function wireIpc() {
@@ -290,21 +286,27 @@ function wireIpc() {
     installDir: defaultInstallDir(),
     dataDir: defaultDataDir(),
     platform: process.platform,
+    timeoutMs: DEFAULT_TIMEOUT_MS,
   }));
 
   ipcMain.handle('setup:pickInstallDir', async (_e, current) => {
-    const result = await dialog.showOpenDialog(mainWindow || undefined, {
-      title: 'Choose install folder',
-      defaultPath: current || defaultInstallDir(),
-      properties: ['openDirectory', 'createDirectory'],
-    });
+    const result = await withTimeout(
+      dialog.showOpenDialog(mainWindow || undefined, {
+        title: 'Choose install folder',
+        defaultPath: current || defaultInstallDir(),
+        properties: ['openDirectory', 'createDirectory'],
+      }),
+      DEFAULT_TIMEOUT_MS,
+      'Folder picker',
+    );
     if (result.canceled || !result.filePaths[0]) return null;
     return result.filePaths[0];
   });
 
   ipcMain.handle('setup:install', async (_e, opts = {}) => {
     try {
-      return await performInstall(opts);
+      // Hard 30s ceiling for the whole install so the UI never hangs.
+      return await withTimeout(performInstall(opts), DEFAULT_TIMEOUT_MS, 'Install');
     } catch (err) {
       log(err instanceof Error ? err.message : String(err), undefined, 'Something went wrong');
       throw err;
@@ -316,14 +318,18 @@ function wireIpc() {
       throw new Error('Launch path missing');
     }
     if (process.platform === 'win32') {
-      // Launch VBS with no console
       spawn('wscript.exe', ['//B', launchPath], {
         detached: true,
         stdio: 'ignore',
         windowsHide: true,
+        timeout: DEFAULT_TIMEOUT_MS,
       }).unref();
     } else {
-      spawn(launchPath, [], { detached: true, stdio: 'ignore' }).unref();
+      spawn(launchPath, [], {
+        detached: true,
+        stdio: 'ignore',
+        timeout: DEFAULT_TIMEOUT_MS,
+      }).unref();
     }
     return true;
   });
@@ -334,8 +340,17 @@ function wireIpc() {
 }
 
 app.whenReady().then(() => {
-  wireIpc();
-  createWindow();
+  // Fail fast if Electron never finishes ready work.
+  const bootTimer = setTimeout(() => {
+    dialog.showErrorBox('DTM Inventory Setup', 'Setup timed out while starting (30s).');
+    app.quit();
+  }, DEFAULT_TIMEOUT_MS);
+  try {
+    wireIpc();
+    createWindow();
+  } finally {
+    clearTimeout(bootTimer);
+  }
 });
 
 app.on('window-all-closed', () => {

@@ -1,5 +1,19 @@
+const REQUEST_TIMEOUT_MS = 30000;
+async function fetchWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err && err.name === 'AbortError') throw new Error('Request timed out after 30s');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function api(path, options = {}) {
-  const res = await fetch(path, {
+  const res = await fetchWithTimeout(path, {
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
   });

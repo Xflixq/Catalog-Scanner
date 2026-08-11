@@ -120,6 +120,7 @@ function hasBin(name) {
     shell: true,
     encoding: 'utf8',
     env: process.env,
+    timeout: 30_000,
   });
   return r.status === 0;
 }
@@ -146,7 +147,7 @@ if (hasBin('electron-packager')) {
   let r = spawnSync(
     pnpmCmd,
     [...common, '--name', 'DTMInventoryMaster', '--electron-version', '33.2.1'],
-    { cwd: root, stdio: 'inherit', shell: true, env: process.env },
+    { cwd: root, stdio: 'inherit', shell: true, env: process.env, timeout: 30_000 },
   );
   if (r.status !== 0) console.warn('Master electron-packager failed (optional)');
 
@@ -155,7 +156,7 @@ if (hasBin('electron-packager')) {
   r = spawnSync(
     pnpmCmd,
     [...common, '--name', 'DTMInventorySetup', '--electron-version', '33.2.1'],
-    { cwd: root, stdio: 'inherit', shell: true, env: process.env },
+    { cwd: root, stdio: 'inherit', shell: true, env: process.env, timeout: 30_000 },
   );
   if (r.status !== 0) console.warn('Setup electron-packager failed (optional)');
 } else {
@@ -182,7 +183,7 @@ if (pkgCheck.status === 0) {
       '--output',
       path.join(distDir, 'DTMInventoryMaster-API.exe'),
     ],
-    { cwd: root, stdio: 'inherit', shell: true, env: process.env },
+    { cwd: root, stdio: 'inherit', shell: true, env: process.env, timeout: 30_000 },
   );
   if (pkg.status !== 0) {
     console.warn('pkg failed; Node API bundle still available');

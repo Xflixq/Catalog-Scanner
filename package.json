@@ -14,14 +14,14 @@
     "master:dev": "pnpm --filter @workspace/master-server start",
     "master:api": "pnpm --filter @workspace/master-server dev:api",
     "setup:dev": "pnpm --filter @workspace/master-server setup:dev",
-    "master:build": "pnpm --filter @workspace/master-server build:exe",
-    "master:msi": "pnpm master:build && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-msi.ps1",
-    "master:setup": "pnpm master:build && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-setup.ps1",
-    "downloads:build": "pnpm --filter @workspace/downloads-portal build",
+    "master:build": "node ./scripts/run-with-timeout.mjs 30000 pnpm --filter @workspace/master-server build:exe",
+    "master:msi": "pnpm master:build && node ./scripts/run-with-timeout.mjs 30000 node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-msi.ps1",
+    "master:setup": "pnpm master:build && node ./scripts/run-with-timeout.mjs 30000 node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-setup.ps1",
+    "downloads:build": "node ./scripts/run-with-timeout.mjs 30000 pnpm --filter @workspace/downloads-portal build",
     "downloads:dev": "pnpm --filter @workspace/downloads-portal start",
     "build:all": "node ./scripts/run-ps1.mjs scripts/build-all.ps1",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "node ./scripts/run-with-timeout.mjs 30000 pnpm run typecheck:libs"
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
