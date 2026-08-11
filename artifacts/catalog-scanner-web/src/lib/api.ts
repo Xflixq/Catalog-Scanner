@@ -31,7 +31,7 @@ export type SessionInfo = {
   createdAt?: string;
 };
 
-const SESSION_KEY = 'catalog-scanner.session.v2';
+const SESSION_KEY = 'dtm-inventory.session.v2';
 
 export function loadSession(): SessionInfo | null {
   try {
