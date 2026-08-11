@@ -68,7 +68,7 @@ Name: "startmenu"; Description: "{cm:StartMenuIcon}"; GroupDescription: "Shortcu
 [Files]
 Source: "..\dist\DTMInventoryMaster.exe"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\dist\dtm-inventory-master.cjs"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
-Source: "..\dist\catalog-scanner-master.cjs"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\dist\dtm-inventory-master.cjs"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\dist\payload\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 Source: ".\Launch Master.vbs"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: ".\run-master.cmd"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist

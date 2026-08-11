@@ -46,7 +46,7 @@ function resolvePayloadDir() {
   ];
   for (const c of candidates) {
     if (!c) continue;
-    if (fs.existsSync(path.join(c, 'dtm-inventory-master.cjs')) || fs.existsSync(path.join(c, 'catalog-scanner-master.cjs'))) return c;
+    if (fs.existsSync(path.join(c, 'dtm-inventory-master.cjs')) || fs.existsSync(path.join(c, 'dtm-inventory-master.cjs'))) return c;
     if (fs.existsSync(path.join(c, 'src', 'gui', 'master', 'main.mjs'))) return c;
   }
   return path.resolve(__dirname, '../../../dist');
@@ -221,7 +221,7 @@ async function performInstall(opts = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
   log('Folders ready', 22, 'Copying files...');
 
-  const bundle = fs.existsSync(path.join(payload, 'dtm-inventory-master.cjs')) ? path.join(payload, 'dtm-inventory-master.cjs') : path.join(payload, 'catalog-scanner-master.cjs');
+  const bundle = fs.existsSync(path.join(payload, 'dtm-inventory-master.cjs')) ? path.join(payload, 'dtm-inventory-master.cjs') : path.join(payload, 'dtm-inventory-master.cjs');
   const srcFromPayload = path.join(payload, 'src');
   const srcFromRepo = path.resolve(__dirname, '../..');
 
