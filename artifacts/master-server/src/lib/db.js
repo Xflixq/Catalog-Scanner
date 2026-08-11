@@ -2,6 +2,21 @@ import Database from 'better-sqlite3';
 import crypto from 'node:crypto';
 
 /**
+ * Ensure a column exists on a table (SQLite has no IF NOT EXISTS for ADD COLUMN
+ * on older versions; PRAGMA table_info is the portable check).
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} table
+ * @param {string} column
+ * @param {string} ddlSuffix e.g. "TEXT NOT NULL DEFAULT ''"
+ */
+function ensureColumn(db, table, column, ddlSuffix) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddlSuffix}`);
+  }
+}
+
+/**
  * @param {string} dbPath
  */
 export function openDb(dbPath) {
@@ -9,6 +24,8 @@ export function openDb(dbPath) {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 
+  // Create base tables. Do NOT create indexes that depend on columns that may
+  // be missing from older DBs — migrate first, then index.
   db.exec(`
     CREATE TABLE IF NOT EXISTS meta (
       key TEXT PRIMARY KEY,
@@ -33,9 +50,6 @@ export function openDb(dbPath) {
       FOREIGN KEY (name_id) REFERENCES product_names(id) ON DELETE CASCADE
     );
 
-    CREATE INDEX IF NOT EXISTS idx_items_name_id ON items(name_id);
-    CREATE INDEX IF NOT EXISTS idx_items_scanned_at ON items(scanned_at);
-
     CREATE TABLE IF NOT EXISTS login_codes (
       code TEXT PRIMARY KEY,
       created_at TEXT NOT NULL,
@@ -52,16 +66,26 @@ export function openDb(dbPath) {
     );
   `);
 
-  // Lightweight migration for existing DBs created before scanned_at existed.
-  const cols = db.prepare(`PRAGMA table_info(items)`).all();
-  if (!cols.some((c) => c.name === 'scanned_at')) {
-    db.exec(`ALTER TABLE items ADD COLUMN scanned_at TEXT NOT NULL DEFAULT ''`);
-    db.exec(`UPDATE items SET scanned_at = created_at WHERE scanned_at = '' OR scanned_at IS NULL`);
-  }
+  // Migrations for DBs created before scanned_at existed.
+  // CREATE TABLE IF NOT EXISTS does not add new columns to existing tables.
+  ensureColumn(db, 'items', 'scanned_at', `TEXT NOT NULL DEFAULT ''`);
+  db.exec(`
+    UPDATE items
+    SET scanned_at = created_at
+    WHERE scanned_at IS NULL OR scanned_at = ''
+  `);
+
+  // Indexes after migrations so older DBs never fail on missing columns.
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_items_name_id ON items(name_id);
+    CREATE INDEX IF NOT EXISTS idx_items_scanned_at ON items(scanned_at);
+  `);
 
   const masterSecret = db.prepare(`SELECT value FROM meta WHERE key = 'master_secret'`).get();
   if (!masterSecret) {
-    db.prepare(`INSERT INTO meta (key, value) VALUES ('master_secret', ?)`).run(crypto.randomBytes(24).toString('hex'));
+    db.prepare(`INSERT INTO meta (key, value) VALUES ('master_secret', ?)`).run(
+      crypto.randomBytes(24).toString('hex'),
+    );
   }
 
   return db;

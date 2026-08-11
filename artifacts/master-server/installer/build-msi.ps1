@@ -57,6 +57,12 @@ if ($wixCmd) {
 
   $wixExe = if ($wixCmd.Source) { $wixCmd.Source } else { $wixCmd.Path }
   Write-Host "Building MSI with WiX CLI: $wixExe"
+  # WiX v7 requires accepting the Open Source Maintenance Fee EULA once:
+  #   wix accept eula
+  # See https://wixtoolset.org/osmf/
+  try {
+    & $wixExe accept eula 2>$null | Out-Null
+  } catch {}
   # Ensure extensions needed for shortcuts/registry are available when possible.
   try {
     & $wixExe extension add WixToolset.UI.wixext 2>$null | Out-Null
@@ -65,6 +71,8 @@ if ($wixCmd) {
   & $wixExe build $WxsV4 -d "StageDir=$Stage" -o $msi -arch x64
   if ($LASTEXITCODE -ne 0) {
     Write-Host 'wix build failed; writing portable zip fallback.' -ForegroundColor Yellow
+    Write-Host 'If you saw OSMF/EULA error WIX7015, run once:  wix accept eula' -ForegroundColor Yellow
+    Write-Host 'Docs: https://wixtoolset.org/osmf/' -ForegroundColor Yellow
     Write-PortableZip
     exit 0
   }
