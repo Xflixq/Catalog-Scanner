@@ -10,9 +10,7 @@
     <MediaTemplate EmbedCab="yes" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="CatalogScannerMaster">
-        <Directory Id="PUBLICFOLDER" Name="public" />
-      </Directory>
+      <Directory Id="INSTALLFOLDER" Name="CatalogScannerMaster" />
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder">
@@ -21,38 +19,29 @@
 
     <Feature Id="ProductFeature" Title="Catalog Scanner Master" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
-      <ComponentGroupRef Id="PublicComponents" />
     </Feature>
 
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Component Id="MainBundle" Guid="*">
         <File Id="MasterCjs" Source="$(StageDir)\catalog-scanner-master.cjs" KeyPath="yes" />
       </Component>
-      <Component Id="RunCmd" Guid="*">
-        <File Id="RunMasterCmd" Source="$(StageDir)\run-master.cmd" KeyPath="yes" />
+      <Component Id="LaunchVbs" Guid="*">
+        <File Id="LaunchMasterVbs" Source="$(StageDir)\Launch Master.vbs" KeyPath="yes" />
         <Shortcut
           Id="StartMenuShortcut"
           Directory="ApplicationProgramsFolder"
           Name="Catalog Scanner Master"
-          Target="[INSTALLFOLDER]run-master.cmd"
+          Target="[System64Folder]wscript.exe"
+          Arguments="//B &quot;[INSTALLFOLDER]Launch Master.vbs&quot;"
           WorkingDirectory="INSTALLFOLDER" />
         <RemoveFolder Id="RemoveStartMenu" Directory="ApplicationProgramsFolder" On="uninstall" />
         <RegistryValue Root="HKCU" Key="Software\DTM\CatalogScannerMaster" Name="installed" Type="integer" Value="1" />
       </Component>
+      <Component Id="RunCmd" Guid="*">
+        <File Id="RunMasterCmd" Source="$(StageDir)\run-master.cmd" KeyPath="yes" />
+      </Component>
       <Component Id="Readme" Guid="*">
         <File Id="ReadmeInstall" Source="$(StageDir)\README-INSTALL.txt" KeyPath="yes" />
-      </Component>
-    </ComponentGroup>
-
-    <ComponentGroup Id="PublicComponents" Directory="PUBLICFOLDER">
-      <Component Id="PublicIndex" Guid="*">
-        <File Id="PublicIndexHtml" Source="$(StageDir)\public\index.html" KeyPath="yes" />
-      </Component>
-      <Component Id="PublicCss" Guid="*">
-        <File Id="PublicStylesCss" Source="$(StageDir)\public\styles.css" KeyPath="yes" />
-      </Component>
-      <Component Id="PublicJs" Guid="*">
-        <File Id="PublicAppJs" Source="$(StageDir)\public\app.js" KeyPath="yes" />
       </Component>
     </ComponentGroup>
   </Package>

@@ -1,91 +1,115 @@
-# Build a Windows MSI for Catalog Scanner Master.
-# Supports:
-#   - WiX Toolset v3 (candle.exe / light.exe)
-#   - WiX Toolset v4/v5/v7 (`wix` CLI from `dotnet tool install -g wix`)
-#
-# Works in Windows PowerShell 5.1 and PowerShell 7+.
-# Usage (from repo root after master bundle exists):
-#   .\artifacts\master-server\installer\build-msi.ps1
+# Build CatalogScannerMaster.msi (primary end-user package).
+# Supports WiX v7 `wix` CLI and classic candle/light.
+# No zip-first path.
 
 $ErrorActionPreference = 'Stop'
 $Root = Resolve-Path (Join-Path $PSScriptRoot '..')
 $Dist = Join-Path $Root 'dist'
 $Bundle = Join-Path $Dist 'catalog-scanner-master.cjs'
-$Public = Join-Path $Dist 'public'
+$Payload = Join-Path $Dist 'payload'
+$Src = Join-Path $Root 'src'
 $WxsV3 = Join-Path $PSScriptRoot 'CatalogScannerMaster.wxs'
 $WxsV4 = Join-Path $PSScriptRoot 'CatalogScannerMaster.wix4.wxs'
 $OutDir = Join-Path $Dist 'installer'
 $Stage = Join-Path $Dist 'msi-stage'
 
-if (-not (Test-Path $Bundle)) {
-  throw "Missing $Bundle. Run: pnpm master:build"
-}
-if (-not (Test-Path $Public)) {
-  throw "Missing $Public. Run: pnpm master:build"
+if (-not (Test-Path $Bundle) -and -not (Test-Path (Join-Path $Payload 'catalog-scanner-master.cjs'))) {
+  throw "Missing bundle. Run: pnpm master:build"
 }
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 if (Test-Path $Stage) { Remove-Item -Recurse -Force $Stage }
 New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 
-Copy-Item $Bundle (Join-Path $Stage 'catalog-scanner-master.cjs') -Force
-Copy-Item (Join-Path $PSScriptRoot 'run-master.cmd') (Join-Path $Stage 'run-master.cmd') -Force
+# Stage runtime
+if (Test-Path $Bundle) {
+  Copy-Item $Bundle (Join-Path $Stage 'catalog-scanner-master.cjs') -Force
+} elseif (Test-Path (Join-Path $Payload 'catalog-scanner-master.cjs')) {
+  Copy-Item (Join-Path $Payload 'catalog-scanner-master.cjs') (Join-Path $Stage 'catalog-scanner-master.cjs') -Force
+}
+
+# Stage Master GUI sources
+$srcSource = $Src
+if (Test-Path (Join-Path $Payload 'src')) { $srcSource = Join-Path $Payload 'src' }
+Copy-Item $srcSource (Join-Path $Stage 'src') -Recurse -Force
+
+# Silent launcher (no console)
+$vbs = @'
+Set sh = CreateObject("WScript.Shell")
+sh.CurrentDirectory = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
+dataDir = sh.ExpandEnvironmentStrings("%ProgramData%") & "\CatalogScanner"
+sh.Environment("Process")("CATALOG_SCANNER_DATA_DIR") = dataDir
+Set fso = CreateObject("Scripting.FileSystemObject")
+exe = sh.CurrentDirectory & "\CatalogScannerMaster.exe"
+If fso.FileExists(exe) Then
+  sh.Run """" & exe & """", 1, False
+  WScript.Quit 0
+End If
+entry = sh.CurrentDirectory & "\src\gui\master\main.mjs"
+If fso.FileExists(entry) Then
+  localElectron = sh.CurrentDirectory & "\node_modules\electron\cli.js"
+  If fso.FileExists(localElectron) Then
+    sh.Run "node """ & localElectron & """ """ & entry & """", 0, False
+  Else
+    sh.Run "cmd /c npx --yes electron@33.2.1 """ & entry & """", 0, False
+  End If
+  WScript.Quit 0
+End If
+bundle = sh.CurrentDirectory & "\catalog-scanner-master.cjs"
+If fso.FileExists(bundle) Then
+  sh.Run "node """ & bundle & """", 0, False
+  WScript.Quit 0
+End If
+MsgBox "Catalog Scanner Master files are missing.", 16, "Catalog Scanner"
+'@
+Set-Content -Path (Join-Path $Stage 'Launch Master.vbs') -Value $vbs -Encoding ASCII
+
+# Keep a tiny hidden helper for MSI shortcut target flexibility
+$cmd = @'
+@echo off
+wscript //B "%~dp0Launch Master.vbs"
+'@
+Set-Content -Path (Join-Path $Stage 'run-master.cmd') -Value $cmd -Encoding ASCII
 Copy-Item (Join-Path $PSScriptRoot 'README-INSTALL.txt') (Join-Path $Stage 'README-INSTALL.txt') -Force
-Copy-Item $Public (Join-Path $Stage 'public') -Recurse -Force
+
+# Minimal public placeholder so older wxs still validate if referenced
+$public = Join-Path $Stage 'public'
+New-Item -ItemType Directory -Force -Path $public | Out-Null
+Set-Content -Path (Join-Path $public 'index.html') -Value '<!doctype html><title>Catalog Scanner</title>' -Encoding ASCII
+Set-Content -Path (Join-Path $public 'styles.css') -Value 'body{font-family:sans-serif}' -Encoding ASCII
+Set-Content -Path (Join-Path $public 'app.js') -Value '/* desktop app */' -Encoding ASCII
 
 if (Test-Path (Join-Path $Dist 'CatalogScannerMaster.exe')) {
   Copy-Item (Join-Path $Dist 'CatalogScannerMaster.exe') (Join-Path $Stage 'CatalogScannerMaster.exe') -Force
 }
 
-function Write-PortableZip {
-  $zip = Join-Path $OutDir 'CatalogScannerMaster-Portable.zip'
-  if (Test-Path $zip) { Remove-Item $zip -Force }
-  Compress-Archive -Path (Join-Path $Stage '*') -DestinationPath $zip -Force
-  Write-Host "Wrote $zip"
+function Fail-NoMsi([string]$msg) {
+  Write-Host $msg
+  Write-Host 'MSI is required for the product flow. Install WiX and re-run.'
+  Write-Host '  dotnet tool install -g wix'
+  Write-Host '  wix accept eula'
+  exit 1
 }
 
-# Prefer modern `wix` CLI (dotnet tool / WiX 4+)
 $wixCmd = Get-Command wix -ErrorAction SilentlyContinue
 if (-not $wixCmd) { $wixCmd = Get-Command wix.exe -ErrorAction SilentlyContinue }
 
 if ($wixCmd) {
-  if (-not (Test-Path $WxsV4)) {
-    throw "Missing WiX v4 authoring file: $WxsV4"
-  }
+  if (-not (Test-Path $WxsV4)) { throw "Missing $WxsV4" }
   $msi = Join-Path $OutDir 'CatalogScannerMaster.msi'
   if (Test-Path $msi) { Remove-Item $msi -Force }
-
   $wixExe = if ($wixCmd.Source) { $wixCmd.Source } else { $wixCmd.Path }
   Write-Host "Building MSI with WiX CLI: $wixExe"
-  # WiX v7 requires accepting the Open Source Maintenance Fee EULA once:
-  #   wix accept eula
-  # See https://wixtoolset.org/osmf/
-  try {
-    & $wixExe accept eula 2>$null | Out-Null
-  } catch {}
-  # Ensure extensions needed for shortcuts/registry are available when possible.
-  try {
-    & $wixExe extension add WixToolset.UI.wixext 2>$null | Out-Null
-  } catch {}
-
+  try { & $wixExe accept eula 2>$null | Out-Null } catch {}
+  try { & $wixExe extension add WixToolset.UI.wixext 2>$null | Out-Null } catch {}
   & $wixExe build $WxsV4 -d "StageDir=$Stage" -o $msi -arch x64
-  if ($LASTEXITCODE -ne 0) {
-    Write-Host 'wix build failed; writing portable zip fallback.' -ForegroundColor Yellow
-    Write-Host 'If you saw OSMF/EULA error WIX7015, run once:  wix accept eula' -ForegroundColor Yellow
-    Write-Host 'Docs: https://wixtoolset.org/osmf/' -ForegroundColor Yellow
-    Write-PortableZip
-    exit 0
-  }
-  if (-not (Test-Path $msi)) {
-    Write-Host 'wix did not produce an MSI; writing portable zip fallback.' -ForegroundColor Yellow
-    Write-PortableZip
-    exit 0
+  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $msi)) {
+    Fail-NoMsi 'wix build failed.'
   }
   Write-Host "MSI ready: $msi"
   exit 0
 }
 
-# Fallback: classic WiX v3 candle/light
 $candleCmd = Get-Command candle.exe -ErrorAction SilentlyContinue
 $lightCmd = Get-Command light.exe -ErrorAction SilentlyContinue
 if (-not $candleCmd -and $env:WIX) {
@@ -94,23 +118,16 @@ if (-not $candleCmd -and $env:WIX) {
   if (Test-Path $candlePath) { $candleCmd = Get-Item $candlePath }
   if (Test-Path $lightPath) { $lightCmd = Get-Item $lightPath }
 }
-
 if (-not $candleCmd -or -not $lightCmd) {
-  Write-Host 'WiX not found on PATH (neither `wix` nor candle/light). Creating portable zip instead of MSI.'
-  Write-Host 'Installed `dotnet tool install -g wix`? Open a NEW terminal so PATH picks up %USERPROFILE%\.dotnet\tools'
-  Write-PortableZip
-  exit 0
+  Fail-NoMsi 'WiX not found on PATH.'
 }
 
 $candleExe = if ($candleCmd.Source) { $candleCmd.Source } else { $candleCmd.FullName }
 $lightExe = if ($lightCmd.Source) { $lightCmd.Source } else { $lightCmd.FullName }
-
 $wixobj = Join-Path $OutDir 'CatalogScannerMaster.wixobj'
 & $candleExe -nologo -out $wixobj $WxsV3 "-dStageDir=$Stage"
-if ($LASTEXITCODE -ne 0) { throw 'candle failed' }
-
+if ($LASTEXITCODE -ne 0) { Fail-NoMsi 'candle failed' }
 $msi = Join-Path $OutDir 'CatalogScannerMaster.msi'
 & $lightExe -nologo -out $msi $wixobj
-if ($LASTEXITCODE -ne 0) { throw 'light failed' }
-
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path $msi)) { Fail-NoMsi 'light failed' }
 Write-Host "MSI ready: $msi"

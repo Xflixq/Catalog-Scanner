@@ -27,12 +27,11 @@
           <h2 class="title">Set up this PC as Master</h2>
           <p class="muted lead">
             Master holds the shared catalog, shows the Android tether QR, and creates login codes for other PCs.
-            No browser required.
           </p>
           <ul class="bullets">
             <li>Installs the Master app on this computer</li>
             <li>Keeps the catalog database on this PC by default</li>
-            <li>Uses the same black and white design as the scanners</li>
+            <li>Matches the black and white scanner design</li>
           </ul>
           <div class="actions">
             <button class="btn primary block" id="toLocation" type="button">Continue</button>
@@ -42,7 +41,7 @@
         <div id="stepLocation" class="step hidden">
           <p class="eyebrow">Location</p>
           <h2 class="title">Where should it live?</h2>
-          <p class="muted lead">Choose a folder on this PC. You can leave the default.</p>
+          <p class="muted lead">Choose a folder on this PC. The default is fine for most people.</p>
           <label class="label">Install folder</label>
           <div class="row">
             <input id="installDir" class="input grow" readonly />
@@ -63,10 +62,19 @@
         </div>
 
         <div id="stepProgress" class="step hidden">
-          <p class="eyebrow">Working</p>
-          <h2 class="title">Installing Master</h2>
-          <p class="muted lead" id="progressText">Preparing files...</p>
-          <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+          <p class="eyebrow">Installing</p>
+          <h2 class="title">Almost there</h2>
+          <p class="muted lead" id="progressText">Setting things up...</p>
+          <div class="progress-wrap">
+            <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+            <div class="progress-meta">
+              <p class="muted" id="progressPct">0%</p>
+              <button class="linkish" id="toggleLogs" type="button">Show logs</button>
+            </div>
+            <div id="logDrawer" class="log-drawer hidden">
+              <pre id="logText"></pre>
+            </div>
+          </div>
         </div>
 
         <div id="stepDone" class="step hidden">
@@ -75,7 +83,7 @@
           <p class="muted lead">
             Open Master to show the tether QR for Android and generate login codes for other PCs.
           </p>
-          <p class="mono" id="donePath">-</p>
+          <p class="done-path" id="donePath">-</p>
           <div class="actions split">
             <button class="btn" id="openFolder" type="button">Open folder</button>
             <button class="btn primary" id="launchMaster" type="button">Open Master</button>

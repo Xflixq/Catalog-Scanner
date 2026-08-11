@@ -95,7 +95,7 @@ Invoke-Step 'Build master server bundle' {
 }
 
 if (-not $SkipMsi) {
-  Invoke-Step 'Build master installer (EXE preferred, MSI/portable fallback)' {
+  Invoke-Step 'Build master MSI package' {
     $setupScript = Join-Root 'artifacts','master-server','installer','build-setup.ps1'
     $msiScript = Join-Root 'artifacts','master-server','installer','build-msi.ps1'
     if (Test-Path $setupScript) {
@@ -106,11 +106,13 @@ if (-not $SkipMsi) {
     $msiDir = Join-Root 'artifacts','master-server','dist','installer'
     $destDir = Join-Root 'dist','downloads'
     if (Test-Path $msiDir) {
-      Get-ChildItem $msiDir -File | ForEach-Object {
+      Get-ChildItem $msiDir -File | Where-Object { $_.Extension -ine '.zip' } | ForEach-Object {
         $dest = Join-Path $destDir $_.Name
         Copy-Item -LiteralPath $_.FullName -Destination $dest -Force
       }
     }
+    # Product flow is MSI-first: strip any leftover zips from downloads
+    Get-ChildItem $destDir -Filter *.zip -ErrorAction SilentlyContinue | Remove-Item -Force
   }
 }
 

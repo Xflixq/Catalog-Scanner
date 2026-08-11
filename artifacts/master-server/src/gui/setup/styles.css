@@ -2,7 +2,7 @@ html, body { height: 100%; overflow: hidden; }
 .shell {
   height: 100%;
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 232px 1fr;
 }
 .rail {
   background: #000;
@@ -13,31 +13,31 @@ html, body { height: 100%; overflow: hidden; }
   justify-content: space-between;
   border-right: 1px solid #000;
 }
-.rail .eyebrow { color: #fff; opacity: 0.7; }
+.rail .eyebrow { color: #fff; opacity: 0.65; font-weight: 400; letter-spacing: 0.12em; }
 .rail h1 {
   margin: 10px 0 0;
-  font-size: 2.4rem;
-  letter-spacing: -0.07em;
-  line-height: 0.92;
-  font-weight: 800;
+  font-size: 2.15rem;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  font-weight: 500;
 }
 .rail-mark {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 112px;
+  height: 112px;
   margin: 24px 0;
 }
 .mark-box {
   position: absolute;
   inset: 0;
-  border: 3px solid #fff;
+  border: 2px solid #fff;
   border-radius: 18px;
 }
 .mark-lens {
   position: absolute;
-  width: 42px;
-  height: 42px;
-  border: 3px solid #fff;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #fff;
   border-radius: 50%;
   left: 28px;
   top: 28px;
@@ -45,16 +45,16 @@ html, body { height: 100%; overflow: hidden; }
 .mark-lens::after {
   content: '';
   position: absolute;
-  width: 28px;
-  height: 3px;
+  width: 26px;
+  height: 2px;
   background: #fff;
-  right: -22px;
-  bottom: -8px;
+  right: -20px;
+  bottom: -6px;
   transform: rotate(45deg);
 }
-.rail-foot { color: #bbb !important; font-size: 12px; }
+.rail-foot { color: #bdbdbd !important; font-size: 12px; font-weight: 400; }
 .panel {
-  padding: 34px 36px 28px;
+  padding: 32px 34px 24px;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -62,9 +62,16 @@ html, body { height: 100%; overflow: hidden; }
 }
 .step { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .hidden { display: none !important; }
-.lead { margin: 14px 0 0; max-width: 42ch; }
+.panel .title {
+  margin: 8px 0 0;
+  font-size: 1.9rem;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  font-weight: 500;
+}
+.lead { margin: 12px 0 0; max-width: 44ch; font-weight: 400; }
 .bullets {
-  margin: 22px 0 0;
+  margin: 20px 0 0;
   padding: 0;
   list-style: none;
   display: grid;
@@ -75,21 +82,22 @@ html, body { height: 100%; overflow: hidden; }
   border-radius: 12px;
   padding: 12px 14px;
   background: var(--soft);
-  font-weight: 600;
+  font-weight: 400;
 }
 .label {
   display: block;
   margin: 18px 0 8px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 .grow { flex: 1; min-width: 0; }
+.row { display: flex; gap: 10px; align-items: center; }
 .check {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 14px;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
 }
 .check input {
@@ -99,17 +107,17 @@ html, body { height: 100%; overflow: hidden; }
 }
 .actions {
   margin-top: auto;
-  padding-top: 28px;
+  padding-top: 24px;
 }
 .actions.split {
   display: flex;
   gap: 10px;
   justify-content: space-between;
 }
-.actions.split .btn.primary { min-width: 180px; }
+.actions.split .btn.primary { min-width: 168px; }
+.progress-wrap { margin-top: 28px; }
 .bar {
-  margin-top: 28px;
-  height: 10px;
+  height: 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
   overflow: hidden;
@@ -117,8 +125,55 @@ html, body { height: 100%; overflow: hidden; }
 }
 .bar-fill {
   height: 100%;
-  width: 8%;
+  width: 6%;
   background: #000;
-  transition: width 0.25s ease;
+  transition: width 0.28s ease;
 }
-.mono { margin-top: 18px; }
+.progress-meta {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.progress-meta .muted { margin: 0; font-size: 13px; font-weight: 400; }
+.linkish {
+  border: 0;
+  background: transparent;
+  color: #666;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.linkish:hover { color: #000; filter: none; }
+.log-drawer {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fafafa;
+  max-height: 180px;
+  overflow: auto;
+  padding: 10px 12px;
+}
+.log-drawer pre {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.done-path {
+  margin-top: 18px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #444;
+  word-break: break-all;
+}
