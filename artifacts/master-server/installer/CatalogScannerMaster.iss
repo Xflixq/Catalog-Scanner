@@ -1,7 +1,6 @@
-; Inno Setup 6 script — Catalog Scanner Master
-; Black / white wizard matching the Catalog Scanner UI.
+; Inno Setup 6 - Catalog Scanner Master
+; Black/white wizard matching Catalog Scanner UI.
 ; Build: .\artifacts\master-server\installer\build-setup.ps1
-; Requires Inno Setup 6 (ISCC.exe).
 
 #define MyAppName "Catalog Scanner Master"
 #define MyAppVersion "1.0.0"

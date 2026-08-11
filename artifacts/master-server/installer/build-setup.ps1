@@ -3,6 +3,9 @@
 #
 # Usage (from repo root, after master bundle exists):
 #   .\artifacts\master-server\installer\build-setup.ps1
+#
+# Optional:
+#   $env:INNO_SETUP_ISCC = "C:\Path\To\ISCC.exe"
 
 $ErrorActionPreference = 'Stop'
 $InstallerDir = $PSScriptRoot
@@ -44,47 +47,33 @@ function Write-PortableZip {
 }
 
 function Find-Iscc {
-  $candidates = New-Object System.Collections.Generic.List[string]
-
-  # Explicit env override
-  if ($env:INNO_SETUP_ISCC -and (Test-Path $env:INNO_SETUP_ISCC)) {
+  if ($env:INNO_SETUP_ISCC -and (Test-Path -LiteralPath $env:INNO_SETUP_ISCC)) {
     return $env:INNO_SETUP_ISCC
   }
-  if ($env:ISCC -and (Test-Path $env:ISCC)) {
+  if ($env:ISCC -and (Test-Path -LiteralPath $env:ISCC)) {
     return $env:ISCC
   }
 
-  # PATH
   $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
-  if ($cmd -and $cmd.Source) { $candidates.Add($cmd.Source) }
-
-  # Common install roots (winget / installer defaults vary)
-  $roots = @(
-    $env:LOCALAPPDATA,
-    $env:ProgramFiles,
-    ${env:ProgramFiles(x86)},
-    'C:\Program Files',
-    'C:\Program Files (x86)',
-    (Join-Path $env:LOCALAPPDATA 'Programs'),
-    (Join-Path $env:USERPROFILE 'AppData\Local\Programs')
-  ) | Where-Object { $_ } | Select-Object -Unique
-
-  foreach ($root in $roots) {
-    foreach ($name in @('Inno Setup 6', 'Inno Setup 5', 'Inno Setup')) {
-      $candidates.Add((Join-Path $root (Join-Path $name 'ISCC.exe')))
-    }
+  if ($cmd -and $cmd.Source -and (Test-Path -LiteralPath $cmd.Source)) {
+    return $cmd.Source
   }
 
-  # Hard-coded common absolute paths
-  foreach ($p in @(
-      'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
-      'C:\Program Files\Inno Setup 6\ISCC.exe',
-      'C:\Users\Charlie\AppData\Local\Programs\Inno Setup 6\ISCC.exe'
-    )) {
-    $candidates.Add($p)
+  $candidates = @(
+    'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
+    'C:\Program Files\Inno Setup 6\ISCC.exe',
+    (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe'),
+    (Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe')
+  )
+  if (${env:ProgramFiles(x86)}) {
+    $candidates += (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe')
   }
 
-  # Registry uninstall keys (Inno writes these)
+  foreach ($c in $candidates) {
+    if ($c -and (Test-Path -LiteralPath $c)) { return $c }
+  }
+
+  # Registry
   $regPaths = @(
     'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
     'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
@@ -96,24 +85,21 @@ function Find-Iscc {
         Where-Object { $_.DisplayName -and ($_.DisplayName -like 'Inno Setup*') } |
         ForEach-Object {
           if ($_.InstallLocation) {
-            $candidates.Add((Join-Path $_.InstallLocation 'ISCC.exe'))
-          }
-          if ($_.DisplayIcon) {
-            $dir = Split-Path -Parent ([string]$_.DisplayIcon).Trim('"')
-            if ($dir) { $candidates.Add((Join-Path $dir 'ISCC.exe')) }
+            $p = Join-Path $_.InstallLocation 'ISCC.exe'
+            if (Test-Path -LiteralPath $p) { return $p }
           }
           if ($_.UninstallString) {
-            # e.g. "C:\Program Files (x86)\Inno Setup 6\unins000.exe"
-            $m = [regex]::Match([string]$_.UninstallString, '"?([^"]*Inno Setup[^"]*)\\unins', 'IgnoreCase')
-            if ($m.Success) {
-              $candidates.Add((Join-Path $m.Groups[1].Value 'ISCC.exe'))
+            $u = [string]$_.UninstallString
+            if ($u -match '(?i)(.*Inno Setup[^\\/]*)[\\/]unins') {
+              $p = Join-Path $Matches[1] 'ISCC.exe'
+              if (Test-Path -LiteralPath $p) { return $p }
             }
           }
         }
     } catch {}
   }
 
-  # Last resort: shallow search under Program Files* for ISCC.exe (bounded)
+  # Bounded recursive search
   foreach ($searchRoot in @(
       ${env:ProgramFiles(x86)},
       $env:ProgramFiles,
@@ -121,46 +107,45 @@ function Find-Iscc {
     )) {
     if (-not $searchRoot -or -not (Test-Path $searchRoot)) { continue }
     try {
-      Get-ChildItem -Path $searchRoot -Filter 'ISCC.exe' -Recurse -ErrorAction SilentlyContinue -Force |
-        Where-Object { $_.FullName -match 'Inno Setup' } |
-        Select-Object -First 3 |
-        ForEach-Object { $candidates.Add($_.FullName) }
+      $hit = Get-ChildItem -Path $searchRoot -Filter 'ISCC.exe' -Recurse -ErrorAction SilentlyContinue -Force |
+        Where-Object { $_.FullName -match 'Inno' } |
+        Select-Object -First 1
+      if ($hit) { return $hit.FullName }
     } catch {}
   }
 
-  foreach ($c in ($candidates | Select-Object -Unique)) {
-    if ($c -and (Test-Path -LiteralPath $c)) {
-      return $c
-    }
-  }
   return $null
+}
+
+function Find-IsccHints {
+  $hits = @()
+  foreach ($r in @(${env:ProgramFiles(x86)}, $env:ProgramFiles, (Join-Path $env:LOCALAPPDATA 'Programs'), 'C:\')) {
+    if (-not $r -or -not (Test-Path $r)) { continue }
+    try {
+      $hits += Get-ChildItem -Path $r -Filter 'ISCC.exe' -Recurse -ErrorAction SilentlyContinue -Force |
+        Select-Object -First 2 -ExpandProperty FullName
+    } catch {}
+  }
+  return $hits
 }
 
 $iscc = Find-Iscc
 
 if (-not $iscc) {
-  Write-Host 'Inno Setup 6 (ISCC.exe) not found — writing portable zip.' -ForegroundColor Yellow
-  Write-Host 'Install: winget install JRSoftware.InnoSetup' -ForegroundColor Yellow
-  Write-Host 'Then either:' -ForegroundColor Yellow
-  Write-Host '  - Open a NEW terminal and re-run this script' -ForegroundColor Yellow
-  Write-Host '  - Or set:  $env:INNO_SETUP_ISCC = "C:\Path\To\ISCC.exe"' -ForegroundColor Yellow
-  Write-Host ''
-  Write-Host 'Searched common Program Files / LocalAppData / registry locations.' -ForegroundColor DarkGray
-  # Help the user locate it quickly
-  try {
-    $hits = @()
-    foreach ($r in @(${env:ProgramFiles(x86)}, $env:ProgramFiles, (Join-Path $env:LOCALAPPDATA 'Programs'))) {
-      if ($r -and (Test-Path $r)) {
-        $hits += Get-ChildItem -Path $r -Filter 'ISCC.exe' -Recurse -ErrorAction SilentlyContinue -Force |
-          Select-Object -First 2 -ExpandProperty FullName
-      }
-    }
-    if ($hits.Count -gt 0) {
-      Write-Host 'Found ISCC.exe at:' -ForegroundColor Cyan
-      $hits | ForEach-Object { Write-Host "  $_" -ForegroundColor Cyan }
-      Write-Host 'Set $env:INNO_SETUP_ISCC to one of those paths and re-run.' -ForegroundColor Cyan
-    }
-  } catch {}
+  Write-Host 'Inno Setup 6 (ISCC.exe) not found - writing portable zip.' -ForegroundColor Yellow
+  Write-Host 'Install: winget install --id JRSoftware.InnoSetup -e --source winget' -ForegroundColor Yellow
+  Write-Host 'Or download: https://jrsoftware.org/isdl.php' -ForegroundColor Yellow
+  Write-Host 'Then set:  $env:INNO_SETUP_ISCC = "C:\Path\To\ISCC.exe"' -ForegroundColor Yellow
+
+  $hints = Find-IsccHints
+  if ($hints -and $hints.Count -gt 0) {
+    Write-Host 'Found ISCC.exe at:' -ForegroundColor Cyan
+    $hints | ForEach-Object { Write-Host "  $_" -ForegroundColor Cyan }
+  } else {
+    Write-Host 'No ISCC.exe found anywhere under Program Files / LocalAppData.' -ForegroundColor Yellow
+    Write-Host 'winget may have registered the package without installing the compiler.' -ForegroundColor Yellow
+    Write-Host 'Re-run the Inno installer GUI and ensure "Inno Setup Preprocessor" is included.' -ForegroundColor Yellow
+  }
 
   Write-PortableZip
   $msiScript = Join-Path $InstallerDir 'build-msi.ps1'
@@ -172,28 +157,18 @@ if (-not $iscc) {
 }
 
 Write-Host "Building Setup EXE with: $iscc"
-# Compile from the installer directory so relative asset paths resolve
 Push-Location $InstallerDir
 try {
-  & $iscc /Q $Iss
+  & $iscc $Iss
   $code = $LASTEXITCODE
 } finally {
   Pop-Location
 }
 
-if ($code -ne 0) {
-  Write-Host "ISCC failed (exit $code) — retrying without /Q for full errors..." -ForegroundColor Yellow
-  Push-Location $InstallerDir
-  try {
-    & $iscc $Iss
-    $code = $LASTEXITCODE
-  } finally {
-    Pop-Location
-  }
-}
+if ($null -eq $code) { $code = 0 }
 
 if ($code -ne 0) {
-  Write-Host 'ISCC failed — writing portable zip fallback.' -ForegroundColor Yellow
+  Write-Host "ISCC failed (exit $code) - writing portable zip fallback." -ForegroundColor Yellow
   Write-PortableZip
   exit 0
 }
@@ -202,9 +177,8 @@ $setup = Join-Path $OutDir 'CatalogScannerMaster-Setup.exe'
 if (Test-Path $setup) {
   Write-Host "Setup EXE ready: $setup" -ForegroundColor Green
 } else {
-  Write-Host 'ISCC finished but Setup EXE missing — writing portable zip.' -ForegroundColor Yellow
+  Write-Host 'ISCC finished but Setup EXE missing - writing portable zip.' -ForegroundColor Yellow
   Write-PortableZip
 }
 
-# Always also emit portable zip alongside the EXE
 Write-PortableZip
