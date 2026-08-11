@@ -1,0 +1,91 @@
+body { overflow: auto; }
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 22px 40px;
+}
+.top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+  border-bottom: 1px solid #D5DAEC;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+}
+.top-meta { text-align: right; line-height: 1.55; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.card h2 {
+  margin: 8px 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+}
+.card.wide { grid-column: 1 / -1; }
+.label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.grow { flex: 1; min-width: 180px; }
+.qr-wrap {
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: inline-flex;
+  background: #fff;
+}
+.qr-wrap img { width: 260px; height: 260px; display: block; }
+.latest-code {
+  margin-top: 14px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 2rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-align: center;
+}
+.hidden { display: none; }
+.code-list, .catalog { margin-top: 16px; display: grid; gap: 10px; }
+.code-item, .group {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #EEF0F8;
+}
+.code-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: #fff;
+}
+.group summary {
+  cursor: pointer;
+  font-weight: 500;
+  list-style: none;
+}
+.group summary::-webkit-details-marker { display: none; }
+.group-items { margin-top: 10px; display: grid; gap: 6px; }
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+@media (max-width: 860px) {
+  .grid { grid-template-columns: 1fr; }
+  .top { flex-direction: column; align-items: flex-start; }
+  .top-meta { text-align: left; }
+}

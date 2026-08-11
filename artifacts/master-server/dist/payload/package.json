@@ -1,0 +1,6 @@
+{
+  "name": "dtm-inventory-master-payload",
+  "private": true,
+  "type": "module",
+  "main": "src/gui/master/main.mjs"
+}

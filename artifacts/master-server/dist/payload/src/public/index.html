@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DTM Inventory Master</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="header">
+        <div>
+          <p class="eyebrow">MASTER PC</p>
+          <h1>DTM Inventory</h1>
+        </div>
+        <div class="header-meta" id="statusMeta">Loading…</div>
+      </header>
+
+      <main class="grid">
+        <section class="card">
+          <p class="eyebrow">ANDROID FIRST BOOT</p>
+          <h2>Tether QR</h2>
+          <p class="muted">Scan this once on the Android app to pair with this master PC.</p>
+          <div class="qr-wrap">
+            <img id="tetherQr" alt="Tether QR code" />
+          </div>
+          <p class="mono" id="tetherUrl">—</p>
+          <button id="refreshTether" class="btn">Refresh QR</button>
+        </section>
+
+        <section class="card">
+          <p class="eyebrow">OTHER PCS</p>
+          <h2>Login codes</h2>
+          <p class="muted">Generate a one-time code for another computer to connect.</p>
+          <div class="row">
+            <input id="codeLabel" class="input" placeholder="Optional label (warehouse PC)" />
+            <button id="createCode" class="btn primary">Generate code</button>
+          </div>
+          <div id="latestCode" class="latest-code hidden"></div>
+          <div id="codeList" class="code-list"></div>
+        </section>
+
+        <section class="card wide">
+          <p class="eyebrow">DATABASE</p>
+          <h2>Storage location</h2>
+          <p class="muted">
+            Default is on this master PC. Change the path if you want the SQLite file on a network drive
+            or another disk. Restart the master after saving.
+          </p>
+          <label class="label">Database path</label>
+          <input id="dbPath" class="input" />
+          <label class="label">Port</label>
+          <input id="port" class="input" type="number" min="1" max="65535" />
+          <div class="row">
+            <button id="saveConfig" class="btn primary">Save config</button>
+            <span id="configNote" class="muted"></span>
+          </div>
+        </section>
+
+        <section class="card wide">
+          <p class="eyebrow">LIVE CATALOG</p>
+          <h2>Groups</h2>
+          <div id="catalog" class="catalog"></div>
+        </section>
+      </main>
+    </div>
+    <script src="./app.js"></script>
+  </body>
+</html>

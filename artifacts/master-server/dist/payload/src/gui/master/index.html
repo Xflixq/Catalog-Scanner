@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DTM Inventory Master</title>
+    <link rel="stylesheet" href="../shared/tokens.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div>
+          <img class="brand-logo" src="../shared/brand/logo.png" alt="DTM Inventory" />
+          <p class="eyebrow" style="margin-top:14px">Master PC</p>
+          <h1 class="title">DTM Inventory</h1>
+        </div>
+        <div class="top-meta mono" id="statusMeta">Starting...</div>
+      </header>
+
+      <main class="grid">
+        <section class="card">
+          <p class="eyebrow">Android first boot</p>
+          <h2>Tether QR</h2>
+          <p class="muted">Scan once in the Android app to pair with this master PC.</p>
+          <div class="qr-wrap">
+            <img id="tetherQr" alt="Tether QR" />
+          </div>
+          <p class="mono" id="tetherUrl">-</p>
+          <button class="btn" id="refreshTether" type="button">Refresh QR</button>
+        </section>
+
+        <section class="card">
+          <p class="eyebrow">Other PCs</p>
+          <h2>Login codes</h2>
+          <p class="muted">Generate a one-time code for another computer.</p>
+          <div class="stack">
+            <input id="codeLabel" class="input" placeholder="Optional label (warehouse PC)" />
+            <button id="createCode" class="btn primary" type="button">Generate code</button>
+          </div>
+          <div id="latestCode" class="latest-code hidden"></div>
+          <div id="codeList" class="code-list"></div>
+        </section>
+
+        <section class="card wide">
+          <p class="eyebrow">Database</p>
+          <h2>Storage</h2>
+          <p class="muted">Default is on this PC. Change only if you need another disk.</p>
+          <label class="label">Database path</label>
+          <div class="row">
+            <input id="dbPath" class="input grow" />
+            <button id="browseDb" class="btn" type="button">Browse</button>
+          </div>
+          <label class="label">Port</label>
+          <input id="port" class="input" type="number" min="1" max="65535" />
+          <div class="row">
+            <button id="saveConfig" class="btn primary" type="button">Save</button>
+            <span id="configNote" class="muted"></span>
+          </div>
+        </section>
+
+        <section class="card wide">
+          <p class="eyebrow">Live catalog</p>
+          <h2>Groups</h2>
+          <div id="catalog" class="catalog"></div>
+        </section>
+      </main>
+    </div>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
