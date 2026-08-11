@@ -1,16 +1,16 @@
 DTM Inventory Master
-======================
+====================
 
 End users
 ---------
 Run DTMInventoryMaster.msi
 
-That installs Master on this PC. Open "DTM Inventory Master" from the Start Menu.
+Open "DTM Inventory Master" from the Start Menu.
 No browser. No command prompt windows.
 
 What Master does
 ----------------
-- Hosts the shared catalog database
+- Hosts the shared inventory database
 - Shows the Android tether QR
 - Creates login codes for other PCs
 

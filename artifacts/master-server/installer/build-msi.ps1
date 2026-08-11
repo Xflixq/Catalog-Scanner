@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 # Stage runtime
 if (Test-Path $Bundle) {
   if (Test-Path $Bundle) { Copy-Item $Bundle (Join-Path $Stage 'dtm-inventory-master.cjs') -Force }
-elseif (Test-Path (Join-Path $Dist 'catalog-scanner-master.cjs')) { Copy-Item (Join-Path $Dist 'catalog-scanner-master.cjs') (Join-Path $Stage 'dtm-inventory-master.cjs') -Force }
+elseif (Test-Path (Join-Path $Dist 'dtm-inventory-master.cjs')) { Copy-Item (Join-Path $Dist 'dtm-inventory-master.cjs') (Join-Path $Stage 'dtm-inventory-master.cjs') -Force }
 } elseif (Test-Path (Join-Path $Payload 'dtm-inventory-master.cjs')) {
   Copy-Item (Join-Path $Payload 'dtm-inventory-master.cjs') (Join-Path $Stage 'dtm-inventory-master.cjs') -Force
 }
