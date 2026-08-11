@@ -9,7 +9,7 @@ body { overflow: auto; }
   justify-content: space-between;
   gap: 16px;
   align-items: flex-end;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #D5DAEC;
   padding-bottom: 18px;
   margin-bottom: 22px;
 }
@@ -57,7 +57,7 @@ body { overflow: auto; }
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 14px;
-  background: var(--soft);
+  background: #EEF0F8;
 }
 .code-item {
   display: flex;

@@ -26,16 +26,16 @@ function log(line, pct, message) {
 
 function defaultInstallDir() {
   if (process.platform === 'win32') {
-    return path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'CatalogScannerMaster');
+    return path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'DTMInventoryMaster');
   }
-  return path.join(os.homedir(), 'CatalogScannerMaster');
+  return path.join(os.homedir(), 'DTMInventoryMaster');
 }
 
 function defaultDataDir() {
   if (process.platform === 'win32') {
-    return path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'CatalogScanner');
+    return path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'DTMInventory');
   }
-  return path.join(os.homedir(), '.catalog-scanner');
+  return path.join(os.homedir(), '.dtm-inventory');
 }
 
 function resolvePayloadDir() {
@@ -46,7 +46,7 @@ function resolvePayloadDir() {
   ];
   for (const c of candidates) {
     if (!c) continue;
-    if (fs.existsSync(path.join(c, 'catalog-scanner-master.cjs'))) return c;
+    if (fs.existsSync(path.join(c, 'dtm-inventory-master.cjs')) || fs.existsSync(path.join(c, 'catalog-scanner-master.cjs'))) return c;
     if (fs.existsSync(path.join(c, 'src', 'gui', 'master', 'main.mjs'))) return c;
   }
   return path.resolve(__dirname, '../../../dist');
@@ -71,7 +71,7 @@ function writeSilentMasterLauncher(installDir, dataDir) {
       'Set sh = CreateObject("WScript.Shell")',
       `sh.CurrentDirectory = "${installDir.replace(/\\/g, '\\\\')}"`,
       `sh.Environment("Process")("CATALOG_SCANNER_DATA_DIR") = "${dataDir.replace(/\\/g, '\\\\')}"`,
-      'exe = sh.CurrentDirectory & "\\CatalogScannerMaster.exe"',
+      'exe = sh.CurrentDirectory & "\\DTMInventoryMaster.exe"',
       'Set fso = CreateObject("Scripting.FileSystemObject")',
       'If fso.FileExists(exe) Then',
       '  sh.Run """" & exe & """", 1, False',
@@ -87,12 +87,12 @@ function writeSilentMasterLauncher(installDir, dataDir) {
       '  End If',
       '  WScript.Quit 0',
       'End If',
-      'bundle = sh.CurrentDirectory & "\\catalog-scanner-master.cjs"',
+      'bundle = sh.CurrentDirectory & "\\dtm-inventory-master.cjs"',
       'If fso.FileExists(bundle) Then',
       '  sh.Run "node """ & bundle & """", 0, False',
       '  WScript.Quit 0',
       'End If',
-      'MsgBox "Catalog Scanner Master files are missing.", 16, "Catalog Scanner"',
+      'MsgBox "DTM Inventory Master files are missing.", 16, "DTM Inventory"',
     ].join('\r\n');
     fs.writeFileSync(path.join(installDir, 'Launch Master.vbs'), vbs, 'utf8');
 
@@ -102,8 +102,8 @@ function writeSilentMasterLauncher(installDir, dataDir) {
       'setlocal EnableExtensions',
       `set "CATALOG_SCANNER_DATA_DIR=${dataDir}"`,
       'cd /d "%~dp0"',
-      'if exist "%~dp0CatalogScannerMaster.exe" (',
-      '  start "" "%~dp0CatalogScannerMaster.exe"',
+      'if exist "%~dp0DTMInventoryMaster.exe" (',
+      '  start "" "%~dp0DTMInventoryMaster.exe"',
       '  exit /b 0',
       ')',
       'wscript //B "%~dp0Launch Master.vbs"',
@@ -116,8 +116,8 @@ function writeSilentMasterLauncher(installDir, dataDir) {
   const sh = `#!/usr/bin/env bash
 cd "$(dirname "$0")"
 export CATALOG_SCANNER_DATA_DIR="${dataDir}"
-if [ -f ./CatalogScannerMaster ]; then
-  exec ./CatalogScannerMaster
+if [ -f ./DTMInventoryMaster ]; then
+  exec ./DTMInventoryMaster
 fi
 if [ -f src/gui/master/main.mjs ]; then
   if command -v electron >/dev/null 2>&1; then
@@ -125,8 +125,8 @@ if [ -f src/gui/master/main.mjs ]; then
   fi
   exec npx --yes electron@33.2.1 src/gui/master/main.mjs
 fi
-if [ -f catalog-scanner-master.cjs ]; then
-  exec node catalog-scanner-master.cjs
+if [ -f dtm-inventory-master.cjs ]; then
+  exec node dtm-inventory-master.cjs
 fi
 echo Master files missing
 exit 1
@@ -145,7 +145,7 @@ function createShortcutWindows(targetPath, shortcutPath, workDir, description) {
     `$s.TargetPath = 'wscript.exe'`,
     `$s.Arguments = '//B "${targetPath.replace(/'/g, "''")}"'`,
     `$s.WorkingDirectory = '${workDir.replace(/'/g, "''")}'`,
-    `$s.Description = '${(description || 'Catalog Scanner Master').replace(/'/g, "''")}'`,
+    `$s.Description = '${(description || 'DTM Inventory Master').replace(/'/g, "''")}'`,
     `$s.WindowStyle = 7`,
     `$s.Save()`,
   ].join('; ');
@@ -164,14 +164,14 @@ function writeStartMenuShortcut(installDir, launchPath) {
     'Windows',
     'Start Menu',
     'Programs',
-    'Catalog Scanner Master',
+    'DTM Inventory Master',
   );
   fs.mkdirSync(programs, { recursive: true });
   createShortcutWindows(
     launchPath,
-    path.join(programs, 'Catalog Scanner Master.lnk'),
+    path.join(programs, 'DTM Inventory Master.lnk'),
     installDir,
-    'Catalog Scanner Master',
+    'DTM Inventory Master',
   );
 }
 
@@ -180,9 +180,9 @@ function writeDesktopShortcut(installDir, launchPath) {
   const desktop = path.join(os.homedir(), 'Desktop');
   createShortcutWindows(
     launchPath,
-    path.join(desktop, 'Catalog Scanner Master.lnk'),
+    path.join(desktop, 'DTM Inventory Master.lnk'),
     installDir,
-    'Catalog Scanner Master',
+    'DTM Inventory Master',
   );
 }
 
@@ -194,7 +194,7 @@ function createWindow() {
     maximizable: false,
     fullscreenable: false,
     backgroundColor: '#ffffff',
-    title: 'Catalog Scanner',
+    title: 'DTM Inventory',
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -221,12 +221,12 @@ async function performInstall(opts = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
   log('Folders ready', 22, 'Copying files...');
 
-  const bundle = path.join(payload, 'catalog-scanner-master.cjs');
+  const bundle = fs.existsSync(path.join(payload, 'dtm-inventory-master.cjs')) ? path.join(payload, 'dtm-inventory-master.cjs') : path.join(payload, 'catalog-scanner-master.cjs');
   const srcFromPayload = path.join(payload, 'src');
   const srcFromRepo = path.resolve(__dirname, '../..');
 
   if (fs.existsSync(bundle)) {
-    fs.copyFileSync(bundle, path.join(installDir, 'catalog-scanner-master.cjs'));
+    fs.copyFileSync(bundle, path.join(installDir, 'dtm-inventory-master.cjs'));
     log('Copied service bundle', 40);
   } else {
     log('Service bundle not found in payload (ok if GUI-only)', 40);
@@ -244,7 +244,7 @@ async function performInstall(opts = {}) {
     path.join(installDir, 'package.json'),
     JSON.stringify(
       {
-        name: 'catalog-scanner-master-install',
+        name: 'dtm-inventory-master-install',
         private: true,
         type: 'module',
         main: 'src/gui/master/main.mjs',
