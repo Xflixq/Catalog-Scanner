@@ -1,12 +1,19 @@
 # Catalog Scanner
 
-Local-first barcode catalog for web and Android (Expo).
+Portable barcode catalog system:
+
+- **Master PC** hosts the shared database and pairing console
+- **Android app** pairs once with a tether QR, then bulk-scans
+- **Web app** connects with a login code from the master
+
+Black / white UI on every surface.
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js 20+
 - pnpm
-- For Android device/emulator runs: Expo Go, or Android Studio / Android SDK for native builds
+- For Android device runs: Expo Go (or Android SDK for native builds)
+- For Windows master installer: Inno Setup (optional), and optionally `pkg` for a standalone `.exe`
 
 ## Install
 
@@ -16,104 +23,89 @@ pnpm install
 
 ### Windows / pnpm 11 note
 
-If install or `pnpm android:dev` fails with:
-
-```text
-ERR_PNPM_IGNORED_BUILDS Ignored build scripts: esbuild@...
-```
-
-this repo already allowlists `esbuild` in `pnpm-workspace.yaml`. Pull the latest fix, then reinstall:
+If install fails with `ERR_PNPM_IGNORED_BUILDS` for esbuild, this repo already allowlists it in `pnpm-workspace.yaml`. Re-run:
 
 ```bash
 pnpm install
 ```
 
-If your pnpm still blocks builds, approve them once:
+## 1) Start the master PC
 
 ```bash
-pnpm approve-builds
-pnpm install
+pnpm master:dev
 ```
 
-If you need to reinstall Expo for the Android workspace, use:
+Open the console:
+
+- http://127.0.0.1:47821
+
+On that page you can:
+
+- show the **Android tether QR**
+- generate **login codes** for other PCs
+- change the **database path**
+
+Default DB location:
+
+- Windows: `%ProgramData%\CatalogScanner\catalog.sqlite`
+- macOS/Linux: `~/.catalog-scanner/catalog.sqlite`
+
+### Windows installer / exe
 
 ```bash
-pnpm --filter @workspace/catalog-scanner-android add expo@~54.0.27
+pnpm master:build
 ```
 
-Do not use `npm install expo` at the repository root. This workspace is pnpm-managed and the root preinstall guard will stop npm on purpose.
+Then build `artifacts/master-server/installer/CatalogScannerMaster.iss` with Inno Setup.
 
-## Boot the web site
+If `pkg` is available, `master:build` also creates `artifacts/master-server/dist/CatalogScannerMaster.exe`.
 
-The web app runs on port `20003`.
+## 2) Boot Android
+
+```bash
+pnpm android:dev
+```
+
+On first launch:
+
+1. Scan the master **tether QR**
+2. The app stores the master URL + session
+3. Use **Scan barcodes** for bulk capture
+4. Choose one name (select existing or add new)
+5. Save the batch
+
+Rules:
+
+- scanning the same code again in the current batch removes it
+- saving a barcode that already exists under the same name removes it from the catalog
+
+## 3) Boot web (other PCs)
 
 ```bash
 pnpm web:dev
 ```
 
-Open the site at:
+Open http://localhost:20003 and connect with:
 
-- http://localhost:20003/
+1. master URL (example `http://192.168.0.5:47821`)
+2. one-time login code from the master console
 
-## Boot the Android / Expo app
+## Catalog behaviour
 
-The Expo app uses port `18900` by default. Scripts are Windows-safe (no Unix `VAR=value` syntax).
+- Catalog is grouped by product name
+- Expand a group to see every barcode
+- No “stored locally” labels — data lives on the master (or the configured DB path)
 
-```bash
-pnpm android:dev
-```
-
-Useful variants:
-
-```bash
-# Tunnel when your phone is on a different network
-pnpm android:dev:tunnel
-# or
-pnpm --filter @workspace/catalog-scanner-android run dev:tunnel
-
-# Open Android emulator/device directly
-pnpm --filter @workspace/catalog-scanner-android run dev:android
-
-# Web preview of the Expo app
-pnpm --filter @workspace/catalog-scanner-android run dev:web
-```
-
-Optional env overrides (PowerShell):
-
-```powershell
-$env:PORT=18900
-$env:EXPO_PUBLIC_DOMAIN="localhost"
-pnpm android:dev
-```
-
-Checks:
+## Useful checks
 
 ```bash
 pnpm --filter @workspace/catalog-scanner-android typecheck
-pnpm --filter @workspace/catalog-scanner-android run build
-pnpm --filter @workspace/catalog-scanner-android run serve
+pnpm --filter @workspace/catalog-scanner-web typecheck
+pnpm --filter @workspace/master-server typecheck
 ```
-
-## APK build
-
-This workspace does not include a checked-in native Android project or an EAS build configuration, so an APK cannot be produced inside a plain container as-is.
-
-To build an APK on a machine that has the Android SDK installed:
-
-```bash
-cd artifacts/catalog-scanner-android
-npx expo prebuild --platform android
-cd android
-./gradlew assembleRelease
-```
-
-The APK is typically written under `android/app/build/outputs/apk/release/`.
-
-For a cloud build, configure Expo Application Services (`eas.json`) and run an Android build from there.
 
 ## Notes
 
-- The Android and web apps are both local-first.
-- The web site is configured for the root path `/`.
-- The Android static deployment uses `/catalog-scanner-android/` as its base path.
-- Keep Expo on SDK 54 (`expo@~54.0.27`) for the Android app. Do not install Expo 57 at the repo root.
+- Keep the master PC online while scanners / other PCs are connected
+- Allow inbound TCP `47821` (or your configured port) on the master LAN firewall
+- Android and web both use the same black/white finish as the master console

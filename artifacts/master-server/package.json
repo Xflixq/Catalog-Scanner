@@ -1,0 +1,31 @@
+{
+  "name": "@workspace/master-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Portable Catalog Scanner master PC server (tether QR, login codes, shared DB)",
+  "bin": {
+    "catalog-scanner-master": "./src/cli.js"
+  },
+  "scripts": {
+    "dev": "node src/cli.js",
+    "start": "node src/cli.js",
+    "build:exe": "node scripts/build-exe.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "catalog:",
+    "@types/qrcode": "^1.5.5",
+    "esbuild": "0.27.3",
+    "typescript": "~5.9.2"
+  }
+}
