@@ -1,5 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+
 export type CatalogItem = {
   id: string;
   barcode: string;
@@ -75,7 +93,7 @@ async function request<T>(
   };
   if (session?.token) headers.Authorization = `Bearer ${session.token}`;
 
-  const res = await fetch(`${baseUrl}${path}`, { ...init, headers });
+  const res = await fetchWithTimeout(`${baseUrl}${path}`, { ...init, headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error((data as { error?: string }).error || `Request failed (${res.status})`);
