@@ -20,12 +20,9 @@ AppSupportURL={#MyAppURL}
 DefaultDirName={autopf}\CatalogScannerMaster
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-LicenseFile=
-InfoBeforeFile=
 OutputDir=..\dist\installer
 OutputBaseFilename=CatalogScannerMaster-Setup
-SetupIconFile=
-Compression=lzma2/ultra64
+Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 WizardSizePercent=120
@@ -33,11 +30,6 @@ WizardImageFile=assets\wizard-modern.bmp
 WizardSmallImageFile=assets\wizard-small.bmp
 WizardImageStretch=yes
 WizardImageBackColor=clBlack
-WizardImageAlphaFormat=defined
-BackColor=clBlack
-BackColor2=clBlack
-BackSolid=yes
-WindowVisible=no
 DisableWelcomePage=no
 ShowLanguageDialog=no
 PrivilegesRequired=admin
@@ -49,7 +41,6 @@ VersionInfoDescription={#MyAppName} Setup
 VersionInfoProductName={#MyAppName}
 SetupLogging=yes
 CloseApplications=force
-RestartApplications=no
 DirExistsWarning=no
 AllowNoIcons=yes
 UsePreviousAppDir=yes
@@ -59,7 +50,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
 SetupAppTitle=Catalog Scanner Master Setup
-SetupWindowTitle=Catalog Scanner Master — Setup
+SetupWindowTitle=Catalog Scanner Master Setup
 WelcomeLabel1=Welcome to Catalog Scanner Master
 WelcomeLabel2=This installs the master PC service that hosts your shared catalog database, tether QR pairing for Android, and login codes for other PCs.%n%nRecommended: install on the always-on PC that scanners and other machines will connect to.%n%nClick Next to continue.
 FinishedHeadingLabel=Installation complete
@@ -67,7 +58,7 @@ FinishedLabelNoIcons=Catalog Scanner Master is installed. Launch it to open the 
 FinishedLabel=Catalog Scanner Master is installed. Launch it to open the black/white console and show the tether QR.
 ClickFinish=Click Finish to exit Setup.
 ConfirmUninstall=Uninstall Catalog Scanner Master from this PC?%n%nYour catalog database under ProgramData is kept unless you remove it manually.
-BeveledLabel=DTM Fabrications · Catalog Scanner
+BeveledLabel=DTM Fabrications - Catalog Scanner
 
 [CustomMessages]
 LaunchAfter=Launch Catalog Scanner Master now
@@ -79,7 +70,6 @@ Name: "desktopicon"; Description: "{cm:DesktopIcon}"; GroupDescription: "Shortcu
 Name: "startmenu"; Description: "{cm:StartMenuIcon}"; GroupDescription: "Shortcuts:"; Flags: checkedonce
 
 [Files]
-; Prefer packaged exe when present.
 Source: "..\dist\CatalogScannerMaster.exe"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\dist\catalog-scanner-master.cjs"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist\public\*"; DestDir: "{app}\public"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -95,14 +85,11 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDi
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchAfter}"; Flags: nowait postinstall skipifsilent shellexec; WorkingDir: "{app}"
 
 [UninstallDelete]
-; Keep database; only remove empty install leftovers.
 Type: filesandordirs; Name: "{app}\logs"
 
 [Code]
-function InitializeWizard: Boolean;
+procedure InitializeWizard;
 begin
-  Result := True;
-  // Force monochrome-ish wizard chrome where Inno allows it.
   WizardForm.Color := clWhite;
   WizardForm.MainPanel.Color := clWhite;
   WizardForm.InnerPage.Color := clWhite;

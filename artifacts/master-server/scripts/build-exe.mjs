@@ -117,7 +117,7 @@ if (pkgCheck.status === 0) {
       'pkg',
       bundlePath,
       '--targets',
-      'node20-win-x64',
+      'node18-win-x64',
       '--output',
       path.join(distDir, 'CatalogScannerMaster.exe'),
     ],
