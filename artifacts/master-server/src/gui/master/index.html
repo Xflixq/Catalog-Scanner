@@ -3,68 +3,104 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="DTM Inventory Master" />
     <title>DTM Inventory Master</title>
     <link rel="stylesheet" href="../shared/tokens.css" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="app">
-      <header class="top">
-        <div>
-          <img class="brand-logo" src="../shared/brand/logo.png" alt="DTM Inventory" />
-          <p class="eyebrow" style="margin-top:14px">Master PC</p>
-          <h1 class="title">DTM Inventory</h1>
+    <div class="app-shell">
+      <header class="titlebar" id="titlebar">
+        <div class="titlebar-left">
+          <img class="titlebar-mark" src="../shared/brand/icon-32.png" alt="" />
+          <div class="titlebar-title">DTM Inventory</div>
+          <div class="titlebar-sub">Master</div>
         </div>
-        <div class="top-meta mono" id="statusMeta">Starting...</div>
+        <div class="titlebar-right">
+          <button class="win-btn" id="btnMin" type="button" aria-label="Minimize" title="Minimize">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="5.25" width="10" height="1.5" fill="currentColor"/></svg>
+          </button>
+          <button class="win-btn" id="btnMax" type="button" aria-label="Maximize" title="Maximize">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+          <button class="win-btn close" id="btnClose" type="button" aria-label="Close" title="Close">
+            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
       </header>
 
-      <main class="grid">
-        <section class="card">
-          <p class="eyebrow">Android first boot</p>
-          <h2>Tether QR</h2>
-          <p class="muted">Scan once in the Android app to pair with this master PC.</p>
-          <div class="qr-wrap">
-            <img id="tetherQr" alt="Tether QR" />
-          </div>
-          <p class="mono" id="tetherUrl">-</p>
-          <button class="btn" id="refreshTether" type="button">Refresh QR</button>
-        </section>
+      <div class="app-body">
+        <div class="page">
+          <section class="hero">
+            <div class="hero-copy">
+              <p class="eyebrow">Control centre</p>
+              <h1 class="title">Your inventory hub</h1>
+              <p class="muted lead">Pair scanners, issue access codes, and keep the shared catalogue in one refined place.</p>
+            </div>
+            <div class="hero-stats" id="statusMeta">
+              <div class="stat"><span class="stat-label">Status</span><span class="stat-value">Starting…</span></div>
+            </div>
+          </section>
 
-        <section class="card">
-          <p class="eyebrow">Other PCs</p>
-          <h2>Login codes</h2>
-          <p class="muted">Generate a one-time code for another computer.</p>
-          <div class="stack">
-            <input id="codeLabel" class="input" placeholder="Optional label (warehouse PC)" />
-            <button id="createCode" class="btn primary" type="button">Generate code</button>
-          </div>
-          <div id="latestCode" class="latest-code hidden"></div>
-          <div id="codeList" class="code-list"></div>
-        </section>
+          <main class="grid">
+            <section class="card feature">
+              <div class="card-head">
+                <p class="eyebrow">Android</p>
+                <h2>Tether QR</h2>
+              </div>
+              <p class="muted">Scan once on first boot to pair a device with this Master PC.</p>
+              <div class="qr-wrap">
+                <img id="tetherQr" alt="Tether QR" />
+              </div>
+              <p class="mono url-line" id="tetherUrl">—</p>
+              <button class="btn ghost" id="refreshTether" type="button">Refresh code</button>
+            </section>
 
-        <section class="card wide">
-          <p class="eyebrow">Database</p>
-          <h2>Storage</h2>
-          <p class="muted">Default is on this PC. Change only if you need another disk.</p>
-          <label class="label">Database path</label>
-          <div class="row">
-            <input id="dbPath" class="input grow" />
-            <button id="browseDb" class="btn" type="button">Browse</button>
-          </div>
-          <label class="label">Port</label>
-          <input id="port" class="input" type="number" min="1" max="65535" />
-          <div class="row">
-            <button id="saveConfig" class="btn primary" type="button">Save</button>
-            <span id="configNote" class="muted"></span>
-          </div>
-        </section>
+            <section class="card feature">
+              <div class="card-head">
+                <p class="eyebrow">Other PCs</p>
+                <h2>Login codes</h2>
+              </div>
+              <p class="muted">Generate a one-time code for another computer.</p>
+              <div class="stack tight">
+                <input id="codeLabel" class="input" placeholder="Optional label (warehouse PC)" />
+                <button id="createCode" class="btn primary" type="button">Generate code</button>
+              </div>
+              <div id="latestCode" class="latest-code hidden"></div>
+              <div id="codeList" class="code-list"></div>
+            </section>
 
-        <section class="card wide">
-          <p class="eyebrow">Live catalog</p>
-          <h2>Groups</h2>
-          <div id="catalog" class="catalog"></div>
-        </section>
-      </main>
+            <section class="card wide">
+              <div class="card-head row-between">
+                <div>
+                  <p class="eyebrow">Storage</p>
+                  <h2>Database</h2>
+                </div>
+              </div>
+              <p class="muted">Kept on this PC by default. Change only if you need another disk.</p>
+              <label class="label">Database path</label>
+              <div class="row">
+                <input id="dbPath" class="input grow" />
+                <button id="browseDb" class="btn" type="button">Browse</button>
+              </div>
+              <label class="label">Port</label>
+              <input id="port" class="input narrow" type="number" min="1" max="65535" />
+              <div class="row actions-inline">
+                <button id="saveConfig" class="btn primary" type="button">Save changes</button>
+                <span id="configNote" class="muted"></span>
+              </div>
+            </section>
+
+            <section class="card wide">
+              <div class="card-head">
+                <p class="eyebrow">Live catalogue</p>
+                <h2>Groups</h2>
+              </div>
+              <div id="catalog" class="catalog"></div>
+            </section>
+          </main>
+        </div>
+      </div>
     </div>
     <script src="./renderer.js"></script>
   </body>

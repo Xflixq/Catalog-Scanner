@@ -1,14 +1,35 @@
 const $ = (id) => document.getElementById(id);
 
+function wireWindowControls() {
+  $('btnMin')?.addEventListener('click', () => window.winControls?.minimize());
+  $('btnMax')?.addEventListener('click', async () => {
+    await window.winControls?.maximize();
+  });
+  $('btnClose')?.addEventListener('click', () => window.winControls?.close());
+}
+
+function renderStatus(status) {
+  const cards = [
+    ['Network', status.baseUrl || '—'],
+    ['Catalogue', `${status.items || 0} items · ${status.names || 0} names`],
+    ['Sessions', `${status.sessions || 0} active`],
+    ['Database', status.dbPath || '—'],
+  ];
+  $('statusMeta').innerHTML = cards
+    .map(
+      ([label, value]) =>
+        `<div class="stat"><span class="stat-label">${label}</span><span class="stat-value">${escapeHtml(
+          String(value),
+        )}</span></div>`,
+    )
+    .join('');
+}
+
 async function refreshStatus() {
   const status = await window.master.status();
-  $('statusMeta').innerHTML = [
-    `LAN ${status.baseUrl}`,
-    `${status.items} items · ${status.names} names · ${status.sessions} sessions`,
-    `DB ${status.dbPath}`,
-  ].join('<br/>');
-  $('dbPath').value = status.dbPath;
-  $('port').value = String(status.port);
+  renderStatus(status);
+  $('dbPath').value = status.dbPath || '';
+  $('port').value = String(status.port || '');
 }
 
 async function refreshTether() {
@@ -19,14 +40,14 @@ async function refreshTether() {
 
 async function refreshCodes() {
   const { codes } = await window.master.codes();
-  $('codeList').innerHTML = codes
+  $('codeList').innerHTML = (codes || [])
     .map((code) => {
       const state = code.usedAt
         ? `used ${new Date(code.usedAt).toLocaleString()}`
         : `expires ${new Date(code.expiresAt).toLocaleString()}`;
-      return `<div class="code-item"><span><strong>${code.code}</strong>${
+      return `<div class="code-item"><span><strong>${escapeHtml(code.code)}</strong>${
         code.label ? ` · ${escapeHtml(code.label)}` : ''
-      }</span><span>${state}</span></div>`;
+      }</span><span>${escapeHtml(state)}</span></div>`;
     })
     .join('');
 }
@@ -41,7 +62,7 @@ async function refreshCatalog() {
             const when = item.scannedAt ? new Date(item.scannedAt).toLocaleString() : '';
             return `<div class="item-row"><span>${escapeHtml(
               item.barcode,
-            )}</span><span>${when}${
+            )}</span><span>${escapeHtml(when)}${
               item.notes ? ` · ${escapeHtml(item.notes)}` : ''
             }</span></div>`;
           })
@@ -49,7 +70,7 @@ async function refreshCatalog() {
         return `<details class="group"><summary>${escapeHtml(
           group.name,
         )} <span class="muted">/ ${group.count}</span></summary><div class="group-items">${
-          items || '<div class="muted">No barcodes</div>'
+          items || '<div class="muted">No barcodes yet</div>'
         }</div></details>`;
       })
       .join('') || '<p class="muted">No groups yet. Scan barcodes from a paired device.</p>';
@@ -100,6 +121,7 @@ $('saveConfig').addEventListener('click', async () => {
 });
 
 async function boot() {
+  wireWindowControls();
   await refreshStatus();
   await refreshTether();
   await refreshCodes();
@@ -112,5 +134,7 @@ async function boot() {
 }
 
 boot().catch((e) => {
-  $('statusMeta').textContent = e.message;
+  $('statusMeta').innerHTML = `<div class="stat"><span class="stat-label">Error</span><span class="stat-value">${escapeHtml(
+    e.message || String(e),
+  )}</span></div>`;
 });

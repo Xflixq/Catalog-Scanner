@@ -1,3 +1,8 @@
+function wireWindowControls() {
+  document.getElementById('btnMin')?.addEventListener('click', () => window.winControls?.minimize());
+  document.getElementById('btnClose')?.addEventListener('click', () => window.winControls?.close());
+}
+
 const $ = (id) => document.getElementById(id);
 const TIMEOUT_MS = 30_000;
 let state = {
@@ -39,6 +44,7 @@ function withTimeout(promise, label) {
 }
 
 async function boot() {
+  wireWindowControls();
   const d = await withTimeout(window.setup.defaults(), 'Startup');
   state.installDir = d.installDir;
   state.dataDir = d.dataDir;
@@ -69,7 +75,7 @@ $('browseInstall').addEventListener('click', async () => {
 $('toggleLogs').addEventListener('click', () => {
   state.logsVisible = !state.logsVisible;
   $('logDrawer').classList.toggle('hidden', !state.logsVisible);
-  $('toggleLogs').textContent = state.logsVisible ? 'Hide logs' : 'Show logs';
+  $('toggleLogs').textContent = state.logsVisible ? 'Hide details' : 'Show details';
 });
 
 $('toInstall').addEventListener('click', async () => {
@@ -77,7 +83,7 @@ $('toInstall').addEventListener('click', async () => {
   state.logsVisible = false;
   $('logText').textContent = '';
   $('logDrawer').classList.add('hidden');
-  $('toggleLogs').textContent = 'Show logs';
+  $('toggleLogs').textContent = 'Show details';
   show('stepProgress');
   setProgress(4, 'Setting things up...');
   try {
@@ -101,7 +107,7 @@ $('toInstall').addEventListener('click', async () => {
     appendLog(msg);
     state.logsVisible = true;
     $('logDrawer').classList.remove('hidden');
-    $('toggleLogs').textContent = 'Hide logs';
+    $('toggleLogs').textContent = 'Hide details';
     $('progressText').textContent = msg.includes('EPERM') || msg.includes('not permitted')
       ? 'Permission blocked - choose a user folder'
       : 'Something went wrong';
@@ -117,7 +123,7 @@ $('launchMaster').addEventListener('click', async () => {
     appendLog(e.message || String(e));
     state.logsVisible = true;
     $('logDrawer').classList.remove('hidden');
-    $('toggleLogs').textContent = 'Hide logs';
+    $('toggleLogs').textContent = 'Hide details';
   }
 });
 

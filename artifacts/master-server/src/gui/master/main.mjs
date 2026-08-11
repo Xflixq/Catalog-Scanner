@@ -24,14 +24,19 @@ let masterToken = '';
 let selectedNodeBin = '';
 
 function createWindow() {
+  const iconPath = path.join(__dirname, '../shared/brand/app.ico');
   const win = new BrowserWindow({
-    width: 1120,
-    height: 780,
-    minWidth: 900,
-    minHeight: 640,
-    backgroundColor: '#ffffff',
+    width: 1180,
+    height: 820,
+    minWidth: 960,
+    minHeight: 680,
+    backgroundColor: '#FAFBFE',
     title: 'DTM Inventory Master',
+    icon: iconPath,
+    frame: false,
+    titleBarStyle: 'hidden',
     autoHideMenuBar: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -39,7 +44,9 @@ function createWindow() {
       sandbox: false,
     },
   });
+  win.setMenuBarVisibility(false);
   win.loadFile(path.join(__dirname, 'index.html'));
+  win.once('ready-to-show', () => win.show());
   return win;
 }
 
@@ -427,6 +434,23 @@ async function getCatalog() {
 }
 
 function wireIpc() {
+  ipcMain.handle('window:minimize', (e) => {
+    BrowserWindow.fromWebContents(e.sender)?.minimize();
+  });
+  ipcMain.handle('window:maximize', (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (!win) return false;
+    if (win.isMaximized()) win.unmaximize();
+    else win.maximize();
+    return win.isMaximized();
+  });
+  ipcMain.handle('window:close', (e) => {
+    BrowserWindow.fromWebContents(e.sender)?.close();
+  });
+  ipcMain.handle('window:isMaximized', (e) => {
+    return BrowserWindow.fromWebContents(e.sender)?.isMaximized() || false;
+  });
+
   ipcMain.handle('master:status', () => getStatus());
   ipcMain.handle('master:tether', () => getTether());
   ipcMain.handle('master:codes', () => listCodes());

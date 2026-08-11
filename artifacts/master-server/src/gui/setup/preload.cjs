@@ -12,3 +12,8 @@ contextBridge.exposeInMainWorld('setup', {
     return () => ipcRenderer.removeListener('setup:progress', listener);
   },
 });
+
+contextBridge.exposeInMainWorld('winControls', {
+  minimize: () => ipcRenderer.invoke('window:minimize'),
+  close: () => ipcRenderer.invoke('window:close'),
+});

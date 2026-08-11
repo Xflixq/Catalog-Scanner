@@ -196,15 +196,20 @@ function writeDesktopShortcut(installDir, launchPath) {
 }
 
 function createWindow() {
+  const iconPath = path.join(__dirname, '../shared/brand/app.ico');
   const win = new BrowserWindow({
-    width: 760,
+    width: 880,
     height: 640,
     resizable: false,
     maximizable: false,
     fullscreenable: false,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FAFBFE',
     title: 'DTM Inventory',
+    icon: iconPath,
+    frame: false,
+    titleBarStyle: 'hidden',
     autoHideMenuBar: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -212,7 +217,9 @@ function createWindow() {
       sandbox: false,
     },
   });
+  win.setMenuBarVisibility(false);
   win.loadFile(path.join(__dirname, 'index.html'));
+  win.once('ready-to-show', () => win.show());
   mainWindow = win;
   return win;
 }
@@ -322,6 +329,13 @@ async function performInstall(opts = {}) {
 }
 
 function wireIpc() {
+  ipcMain.handle('window:minimize', (e) => {
+    BrowserWindow.fromWebContents(e.sender)?.minimize();
+  });
+  ipcMain.handle('window:close', (e) => {
+    BrowserWindow.fromWebContents(e.sender)?.close();
+  });
+
   ipcMain.handle('setup:defaults', () => ({
     installDir: defaultInstallDir(),
     dataDir: defaultDataDir(),

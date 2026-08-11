@@ -1,76 +1,119 @@
-body { overflow: auto; }
-.app {
-  max-width: 1100px;
+body { overflow: hidden; }
+.page {
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 28px 22px 40px;
+  padding: 28px 28px 40px;
 }
-.top {
+.hero {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 24px;
   align-items: flex-end;
-  border-bottom: 1px solid #D5DAEC;
-  padding-bottom: 18px;
   margin-bottom: 22px;
+  padding: 8px 4px 18px;
+  border-bottom: 1px solid var(--border);
 }
-.top-meta { text-align: right; line-height: 1.55; }
+.hero-copy { max-width: 520px; }
+.lead { margin: 12px 0 0; max-width: 46ch; }
+.hero-stats {
+  display: grid;
+  gap: 10px;
+  min-width: 260px;
+}
+.stat {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: 4px;
+}
+.stat-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 650;
+}
+.stat-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  word-break: break-all;
+  line-height: 1.4;
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 .card h2 {
-  margin: 8px 0;
-  font-size: 1.45rem;
+  margin: 6px 0 0;
+  font-size: 1.28rem;
   letter-spacing: -0.03em;
+  font-weight: 620;
 }
 .card.wide { grid-column: 1 / -1; }
+.card-head { margin-bottom: 8px; }
+.row-between { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .label {
   display: block;
-  margin: 14px 0 6px;
-  font-size: 13px;
-  font-weight: 500;
+  margin: 16px 0 8px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .grow { flex: 1; min-width: 180px; }
+.narrow { max-width: 180px; }
+.tight { gap: 10px; }
+.actions-inline { margin-top: 16px; }
 .qr-wrap {
-  margin: 16px 0;
+  margin: 18px 0 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 18px;
+  padding: 18px;
   display: inline-flex;
-  background: #fff;
+  background:
+    radial-gradient(circle at top left, rgba(41,53,136,0.06), transparent 45%),
+    #fff;
+  box-shadow: var(--shadow-sm);
 }
-.qr-wrap img { width: 260px; height: 260px; display: block; }
+.qr-wrap img { width: 240px; height: 240px; display: block; }
+.url-line { margin: 0 0 10px; color: var(--muted); }
 .latest-code {
   margin-top: 14px;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  font-size: 2rem;
-  font-weight: 500;
-  letter-spacing: 0.18em;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  padding: 18px 16px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
   text-align: center;
+  background: linear-gradient(180deg, #fff, var(--soft));
+  color: var(--brand);
 }
-.hidden { display: none; }
+.hidden { display: none !important; }
 .code-list, .catalog { margin-top: 16px; display: grid; gap: 10px; }
 .code-item, .group {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 12px 14px;
-  background: #EEF0F8;
+  background: #fff;
 }
 .code-item {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono);
   font-size: 12px;
-  background: #fff;
 }
 .group summary {
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 650;
   list-style: none;
 }
 .group summary::-webkit-details-marker { display: none; }
@@ -81,11 +124,12 @@ body { overflow: auto; }
   gap: 10px;
   border-top: 1px solid var(--border);
   padding-top: 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--mono);
   font-size: 12px;
 }
-@media (max-width: 860px) {
+@media (max-width: 920px) {
   .grid { grid-template-columns: 1fr; }
-  .top { flex-direction: column; align-items: flex-start; }
-  .top-meta { text-align: left; }
+  .hero { flex-direction: column; align-items: stretch; }
+  .hero-stats { min-width: 0; }
+  .page { padding: 20px 16px 32px; }
 }

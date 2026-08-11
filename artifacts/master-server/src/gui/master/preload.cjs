@@ -10,3 +10,10 @@ contextBridge.exposeInMainWorld('master', {
   pickDbPath: () => ipcRenderer.invoke('master:pickDbPath'),
   openExternal: (url) => ipcRenderer.invoke('master:openExternal', url),
 });
+
+contextBridge.exposeInMainWorld('winControls', {
+  minimize: () => ipcRenderer.invoke('window:minimize'),
+  maximize: () => ipcRenderer.invoke('window:maximize'),
+  close: () => ipcRenderer.invoke('window:close'),
+  isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+});
