@@ -21,7 +21,8 @@
     "downloads:dev": "pnpm --filter @workspace/downloads-portal start",
     "build:all": "node ./scripts/run-ps1.mjs scripts/build-all.ps1",
     "typecheck:libs": "tsc --build",
-    "typecheck": "node ./scripts/run-with-timeout.mjs 30000 pnpm run typecheck:libs"
+    "typecheck": "node ./scripts/run-with-timeout.mjs 30000 pnpm run typecheck:libs",
+    "master:rebuild": "pnpm --filter @workspace/master-server rebuild better-sqlite3"
   },
   "devDependencies": {
     "@types/react": "~19.1.10",

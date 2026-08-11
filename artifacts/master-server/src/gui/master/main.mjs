@@ -3,11 +3,13 @@ import path from 'node:path';
 import fs from 'node:fs';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { loadConfig, saveConfig } from '../../lib/config.js';
 import { DEFAULT_TIMEOUT_MS, withTimeout } from '../../lib/timeout.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const packageRoot = path.resolve(__dirname, '../../..');
+const repoRoot = path.resolve(packageRoot, '../..');
 nativeTheme.themeSource = 'light';
 
 /** @type {import('node:child_process').ChildProcess | null} */
@@ -18,6 +20,8 @@ let config = null;
 let baseUrl = '';
 /** @type {string} */
 let masterToken = '';
+/** @type {string} */
+let selectedNodeBin = '';
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -39,24 +43,198 @@ function createWindow() {
   return win;
 }
 
-function resolveNodeBinary() {
-  // Prefer system Node so better-sqlite3 matches the installed Node ABI,
-  // not Electron's NODE_MODULE_VERSION.
-  if (process.env.DTM_NODE_PATH && fs.existsSync(process.env.DTM_NODE_PATH)) {
-    return process.env.DTM_NODE_PATH;
-  }
+function unique(list) {
+  return [...new Set(list.filter(Boolean))];
+}
+
+function listNodeCandidates() {
+  const out = [];
+  if (process.env.DTM_NODE_PATH) out.push(process.env.DTM_NODE_PATH);
   if (process.platform === 'win32') {
-    const candidates = [
+    out.push(
       path.join(process.env.ProgramFiles || 'C:\\Program Files', 'nodejs', 'node.exe'),
       path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'nodejs', 'node.exe'),
       path.join(process.env.LOCALAPPDATA || '', 'Programs', 'nodejs', 'node.exe'),
-    ];
-    for (const c of candidates) {
-      if (c && fs.existsSync(c)) return c;
+      'node.exe',
+      'node',
+    );
+    // nvm-windows versions
+    const nvmHome = process.env.NVM_HOME || path.join(process.env.APPDATA || '', 'nvm');
+    try {
+      if (nvmHome && fs.existsSync(nvmHome)) {
+        for (const name of fs.readdirSync(nvmHome)) {
+          const candidate = path.join(nvmHome, name, 'node.exe');
+          if (fs.existsSync(candidate)) out.push(candidate);
+        }
+      }
+    } catch {
+      // ignore
     }
-    return 'node.exe';
+  } else {
+    out.push('node', '/usr/local/bin/node', '/usr/bin/node');
   }
-  return 'node';
+  return unique(out);
+}
+
+function nodeCanLoadSqlite(nodeBin) {
+  // Probe with the same module resolution path the API child will use.
+  const probe = [
+    `const path=require('path');`,
+    `const roots=${JSON.stringify([packageRoot, repoRoot])};`,
+    `let last=null;`,
+    `for (const root of roots){`,
+    `  try {`,
+    `    const mod=require(require('module').createRequire(path.join(root,'package.json')).resolve('better-sqlite3'));`,
+    `    const Database=mod.default||mod;`,
+    `    const db=new Database(':memory:');`,
+    `    db.close();`,
+    `    process.stdout.write('OK');`,
+    `    process.exit(0);`,
+    `  } catch(e){ last=e; }`,
+    `}`,
+    `process.stderr.write(String(last&&last.message||last||'better-sqlite3 failed'));`,
+    `process.exit(1);`,
+  ].join('');
+
+  const result = spawnSync(nodeBin, ['-e', probe], {
+    cwd: packageRoot,
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 15000,
+    env: process.env,
+  });
+  return {
+    ok: result.status === 0 && String(result.stdout || '').includes('OK'),
+    stdout: result.stdout || '',
+    stderr: result.stderr || '',
+    error: result.error ? String(result.error.message || result.error) : '',
+  };
+}
+
+function rebuildSqliteForNode(nodeBin) {
+  // Rebuild better-sqlite3 for the selected Node binary (not Electron).
+  const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+  const attempts = [
+    {
+      cmd: pnpmCmd,
+      args: ['rebuild', 'better-sqlite3', '--filter', '@workspace/master-server'],
+      cwd: repoRoot,
+    },
+    {
+      cmd: pnpmCmd,
+      args: ['rebuild', 'better-sqlite3'],
+      cwd: packageRoot,
+    },
+    {
+      cmd: nodeBin,
+      args: [
+        path.join(
+          repoRoot,
+          'node_modules',
+          'pnpm',
+          'bin',
+          'pnpm.cjs',
+        ),
+        'rebuild',
+        'better-sqlite3',
+      ],
+      cwd: repoRoot,
+    },
+  ];
+
+  const logs = [];
+  for (const attempt of attempts) {
+    // Skip missing pnpm.cjs path quietly
+    if (attempt.cmd === nodeBin && !fs.existsSync(attempt.args[0])) continue;
+    const result = spawnSync(attempt.cmd, attempt.args, {
+      cwd: attempt.cwd,
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 60000,
+      shell: process.platform === 'win32',
+      env: {
+        ...process.env,
+        npm_config_runtime: 'node',
+        npm_config_target: '',
+        npm_config_disturl: '',
+      },
+    });
+    logs.push(
+      `$ ${attempt.cmd} ${attempt.args.join(' ')}\n` +
+        `${result.stdout || ''}\n${result.stderr || ''}\nexit ${result.status}`,
+    );
+    if (result.status === 0) {
+      const check = nodeCanLoadSqlite(nodeBin);
+      if (check.ok) return { ok: true, log: logs.join('\n\n') };
+    }
+  }
+  return { ok: false, log: logs.join('\n\n') };
+}
+
+function resolveWorkingNodeBinary() {
+  const candidates = listNodeCandidates();
+  const failures = [];
+
+  for (const bin of candidates) {
+    // Skip non-existing absolute paths; allow bare commands.
+    if (bin.includes('\\') || bin.includes('/')) {
+      if (!fs.existsSync(bin)) continue;
+    }
+    const check = nodeCanLoadSqlite(bin);
+    if (check.ok) return { nodeBin: bin, note: 'native module already compatible' };
+    failures.push(`${bin}: ${(check.stderr || check.error || 'failed').trim()}`);
+  }
+
+  // Prefer first existing/runnable candidate for rebuild.
+  let rebuildTarget = null;
+  for (const bin of candidates) {
+    if (bin.includes('\\') || bin.includes('/')) {
+      if (fs.existsSync(bin)) {
+        rebuildTarget = bin;
+        break;
+      }
+    } else {
+      const ver = spawnSync(bin, ['-v'], {
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: 5000,
+      });
+      if (ver.status === 0) {
+        rebuildTarget = bin;
+        break;
+      }
+    }
+  }
+  if (!rebuildTarget) {
+    throw new Error(
+      'No system Node.js found on PATH.\nInstall Node 20 LTS from https://nodejs.org then run:\n  pnpm install\n  pnpm master:dev',
+    );
+  }
+
+  const rebuilt = rebuildSqliteForNode(rebuildTarget);
+  const check = nodeCanLoadSqlite(rebuildTarget);
+  if (check.ok) {
+    return { nodeBin: rebuildTarget, note: 'rebuilt better-sqlite3 for system Node' };
+  }
+
+  throw new Error(
+    [
+      'better-sqlite3 does not match your system Node.js.',
+      '',
+      'Tried:',
+      ...failures.slice(0, 6).map((f) => `- ${f}`),
+      '',
+      `Rebuild target: ${rebuildTarget}`,
+      rebuilt.log ? `Rebuild log:\n${rebuilt.log.slice(-1200)}` : '',
+      '',
+      'Fix:',
+      '  1) Install Node 20 LTS (recommended)',
+      '  2) cd C:\\dev\\dtm-inventory-v2',
+      '  3) pnpm install',
+      '  4) pnpm --filter @workspace/master-server rebuild better-sqlite3',
+      '  5) pnpm master:dev',
+    ].join('\n'),
+  );
 }
 
 function requestJson(method, urlPath, body) {
@@ -97,9 +275,7 @@ function requestJson(method, urlPath, body) {
         });
       },
     );
-    req.on('timeout', () => {
-      req.destroy(new Error('Request timed out after 30s'));
-    });
+    req.on('timeout', () => req.destroy(new Error('Request timed out after 30s')));
     req.on('error', reject);
     if (payload) req.write(payload);
     req.end();
@@ -139,21 +315,25 @@ async function bootService() {
   config = loadConfig();
   baseUrl = `http://127.0.0.1:${config.port}`;
 
-  const nodeBin = resolveNodeBinary();
+  const resolved = resolveWorkingNodeBinary();
+  selectedNodeBin = resolved.nodeBin;
+
   const cliPath = path.resolve(__dirname, '../../cli.js');
   if (!fs.existsSync(cliPath)) {
     throw new Error(`API entry missing: ${cliPath}`);
   }
 
-  apiChild = spawn(nodeBin, [cliPath], {
-    cwd: path.resolve(__dirname, '../../..'),
+  apiChild = spawn(selectedNodeBin, [cliPath], {
+    cwd: packageRoot,
     env: {
       ...process.env,
       PORT: String(config.port),
       HOST: '127.0.0.1',
       DTM_INVENTORY_DATA_DIR: config.dataDir,
       CATALOG_SCANNER_DATA_DIR: config.dataDir,
+      // Ensure child is plain Node, never Electron-as-node.
       ELECTRON_RUN_AS_NODE: '',
+      npm_config_runtime: 'node',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
@@ -175,13 +355,23 @@ async function bootService() {
   try {
     await waitForHealth(DEFAULT_TIMEOUT_MS);
   } catch (err) {
-    const detail = bootLog.trim().slice(-800);
+    const detail = bootLog.trim().slice(-900);
     throw new Error(
-      `${err instanceof Error ? err.message : String(err)}${detail ? `\n\n${detail}` : ''}\n\nTip: run "pnpm install" so better-sqlite3 matches your system Node.`,
+      [
+        err instanceof Error ? err.message : String(err),
+        `Node used: ${selectedNodeBin}`,
+        resolved.note ? `Note: ${resolved.note}` : '',
+        detail ? `\nAPI log:\n${detail}` : '',
+        '',
+        'If this mentions NODE_MODULE_VERSION, run:',
+        '  pnpm --filter @workspace/master-server rebuild better-sqlite3',
+        '  pnpm master:dev',
+      ]
+        .filter(Boolean)
+        .join('\n'),
     );
   }
 
-  // Create a short-lived tether session so authenticated catalog calls work.
   try {
     const tether = await requestJson('GET', '/api/master/tether');
     const session = await requestJson('POST', '/api/auth/tether', {
@@ -193,7 +383,7 @@ async function bootService() {
     masterToken = '';
   }
 
-  return { baseUrl, config };
+  return { baseUrl, config, nodeBin: selectedNodeBin };
 }
 
 async function getStatus() {
@@ -207,6 +397,7 @@ async function getStatus() {
     names: status.names || 0,
     sessions: status.sessions || 0,
     host: status.host || config.host,
+    nodeBin: selectedNodeBin,
   };
 }
 
@@ -287,7 +478,8 @@ function stopApiChild() {
 
 app.whenReady().then(async () => {
   try {
-    await withTimeout(bootService(), DEFAULT_TIMEOUT_MS, 'Master startup');
+    // Allow one rebuild attempt inside the 30s window when possible.
+    await withTimeout(bootService(), Math.max(DEFAULT_TIMEOUT_MS, 45000), 'Master startup');
   } catch (err) {
     dialog.showErrorBox(
       'DTM Inventory Master',

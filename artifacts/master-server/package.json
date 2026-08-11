@@ -14,8 +14,8 @@
     "setup:dev": "electron src/gui/setup/main.mjs",
     "build:exe": "node scripts/build-exe.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "rebuild:native": "node -e \"console.log('Native modules are used by Node API child only; run pnpm install if better-sqlite3 is missing.')\"",
-    "postinstall": "node -e \"try{require('better-sqlite3');console.log('better-sqlite3 ok for Node')}catch(e){console.warn(String(e.message||e))}\""
+    "rebuild:native": "pnpm rebuild better-sqlite3",
+    "postinstall": "node -e \"try{require('better-sqlite3');console.log('better-sqlite3 ok for Node '+process.version)}catch(e){console.warn('better-sqlite3 needs rebuild for',process.version,'-',e.message); process.exitCode=0}\""
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
