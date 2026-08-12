@@ -58,7 +58,7 @@ function createWindow() {
 }
 
 
-function isPackaged() {
+function isPackagedApp() {
   try {
     return Boolean(app?.isPackaged);
   } catch {
