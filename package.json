@@ -1,6 +1,6 @@
 {
   "name": "dtm-inventory",
-  "version": "0.0.0",
+  "version": "1.3.1",
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "scripts": {
@@ -16,7 +16,8 @@
     "master:setup": "pnpm master:app && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-setup.ps1",
     "android:apk": "pnpm --filter @workspace/dtm-inventory-android apk",
     "android:publish-apk": "pnpm --filter @workspace/dtm-inventory-android apk:publish",
-    "android:prebuild": "pnpm --filter @workspace/dtm-inventory-android prebuild:android"
+    "android:prebuild": "pnpm --filter @workspace/dtm-inventory-android prebuild:android",
+    "master:publish-downloads": "pnpm --filter @workspace/master-server exec node ./scripts/publish-downloads.mjs"
   },
   "devDependencies": {
     "typescript": "~5.9.3"
