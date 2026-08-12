@@ -24,7 +24,14 @@ let masterToken = '';
 let selectedNodeBin = '';
 
 function createWindow() {
-  const iconPath = path.join(__dirname, '../shared/brand/app.ico');
+  const iconPath = [
+    path.join(__dirname, '../shared/brand/app.ico'),
+    path.join(__dirname, '../shared/brand/icon-256.png'),
+    path.join(process.resourcesPath || '', 'app.ico'),
+    path.join(process.resourcesPath || '', 'brand', 'app.ico'),
+  ].find((p) => {
+    try { return p && fs.existsSync(p); } catch { return false; }
+  });
   const win = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -48,6 +55,44 @@ function createWindow() {
   win.loadFile(path.join(__dirname, 'index.html'));
   win.once('ready-to-show', () => win.show());
   return win;
+}
+
+
+function isPackaged() {
+  try {
+    return Boolean(app?.isPackaged);
+  } catch {
+    return false;
+  }
+}
+
+async function bootServiceInProcess() {
+  // Used by packaged .exe where better-sqlite3 is rebuilt for Electron.
+  const { startMasterService } = await import('../../service.js');
+  const { pickPrimaryLanIp } = await import('../../lib/network.js');
+  const started = await startMasterService({ host: '127.0.0.1' });
+  config = started.config;
+  baseUrl = `http://127.0.0.1:${config.port}`;
+  // lightweight status helpers via HTTP still work against local server
+  apiChild = {
+    killed: false,
+    pid: process.pid,
+    kill: () => {
+      try { started.close(); } catch {}
+    },
+  };
+  // Create tether session
+  try {
+    const tether = await requestJson('GET', '/api/master/tether');
+    const session = await requestJson('POST', '/api/auth/tether', {
+      baseUrl: tether.baseUrl || baseUrl,
+      deviceName: 'DTM Inventory Master',
+    });
+    masterToken = session.token || '';
+  } catch {
+    masterToken = '';
+  }
+  return { baseUrl, config, mode: 'in-process', lan: pickPrimaryLanIp() };
 }
 
 function unique(list) {
@@ -519,12 +564,14 @@ function wireIpc() {
 function stopApiChild() {
   if (!apiChild || apiChild.killed) return;
   try {
-    if (process.platform === 'win32') {
+    if (typeof apiChild.kill === 'function' && apiChild.pid === process.pid) {
+      apiChild.kill();
+    } else if (process.platform === 'win32' && apiChild.pid) {
       spawn('taskkill', ['/pid', String(apiChild.pid), '/T', '/F'], {
         stdio: 'ignore',
         windowsHide: true,
       });
-    } else {
+    } else if (apiChild.kill) {
       apiChild.kill('SIGTERM');
     }
   } catch {
@@ -536,7 +583,7 @@ function stopApiChild() {
 app.whenReady().then(async () => {
   try {
     // Allow one rebuild attempt inside the 30s window when possible.
-    await withTimeout(bootService(), Math.max(DEFAULT_TIMEOUT_MS, 45000), 'Master startup');
+    await withTimeout(isPackagedApp() ? bootServiceInProcess() : bootService(), Math.max(DEFAULT_TIMEOUT_MS, 45000), 'Master startup');
   } catch (err) {
     dialog.showErrorBox(
       'DTM Inventory Master',

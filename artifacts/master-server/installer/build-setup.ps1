@@ -1,52 +1,53 @@
-# Build DTM Inventory product packages.
-# Primary user deliverable: DTMInventoryMaster.msi
-# External tools hard-capped at 30 seconds by build-msi.ps1.
+# Build DTM Inventory installers.
+# 1) Prefer packaged desktop apps (.exe) from build-desktop-apps.mjs
+# 2) Also try MSI via WiX when available
+#
+# Usage:
+#   pnpm master:app
+#   .\artifacts\master-server\installer\build-setup.ps1
 
 $ErrorActionPreference = 'Stop'
-$TimeoutSec = 30
+$TimeoutSec = 120
 $InstallerDir = $PSScriptRoot
 $Root = Resolve-Path (Join-Path $InstallerDir '..')
 $Dist = Join-Path $Root 'dist'
-$Payload = Join-Path $Dist 'payload'
+$Desktop = Join-Path $Dist 'desktop'
 $OutDir = Join-Path $Dist 'installer'
-$Bundle = Join-Path $Dist 'dtm-inventory-master.cjs'
-
-if (-not (Test-Path $Bundle) -and -not (Test-Path $Payload)) {
-  throw "Missing build output. Run: pnpm master:build"
-}
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
-$msiScript = Join-Path $InstallerDir 'build-msi.ps1'
-if (Test-Path $msiScript) {
-  Write-Host 'Building MSI (primary package, 30s tool timeout)...'
-  & $msiScript
-} else {
-  throw 'build-msi.ps1 missing'
-}
-
-# Copy any desktop EXEs if electron-packager produced them
-$desktop = Join-Path $Dist 'desktop'
-if (Test-Path $desktop) {
-  Get-ChildItem $desktop -Directory | ForEach-Object {
-    $exe = Get-ChildItem $_.FullName -Filter *.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+function Copy-AppOutputs {
+  if (-not (Test-Path $Desktop)) { return }
+  Get-ChildItem $Desktop -Directory | ForEach-Object {
+    $dir = $_.FullName
+    $exe = Get-ChildItem $dir -Filter *.exe -File -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($exe) {
       Copy-Item $exe.FullName (Join-Path $OutDir $exe.Name) -Force
-      Write-Host "Copied $($exe.Name)"
+      Write-Host "EXE: $($exe.Name)"
     }
+    $zipName = ($_.Name -replace '\s+', '') + '.zip'
+    $zipPath = Join-Path $OutDir $zipName
+    if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+    Compress-Archive -Path (Join-Path $dir '*') -DestinationPath $zipPath -Force
+    Write-Host "ZIP: $zipName"
   }
 }
 
-Get-ChildItem $OutDir -Filter *.zip -ErrorAction SilentlyContinue | ForEach-Object {
-  Write-Host "Removing zip package $($_.Name) (MSI-first product flow)"
-  Remove-Item $_.FullName -Force
+# If desktop apps already built, collect them
+Copy-AppOutputs
+
+# MSI optional
+$msiScript = Join-Path $InstallerDir 'build-msi.ps1'
+if (Test-Path $msiScript) {
+  Write-Host 'Attempting MSI build (optional)...'
+  try {
+    & $msiScript
+  } catch {
+    Write-Host "MSI skipped: $($_.Exception.Message)"
+  }
 }
 
-$msi = Join-Path $OutDir 'DTMInventoryMaster.msi'
-if (Test-Path $msi) {
-  Write-Host "Primary package ready: $msi"
-} else {
-  Write-Host 'MSI was not produced. Install WiX (wix accept eula) and rebuild.'
-}
-
+Write-Host ''
+Write-Host 'Installer folder:' $OutDir
+Get-ChildItem $OutDir -File | ForEach-Object { Write-Host (' - {0} ({1:N0} bytes)' -f $_.Name, $_.Length) }
 Write-Host 'Done.'

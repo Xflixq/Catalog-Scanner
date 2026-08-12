@@ -1,27 +1,33 @@
-DTM Inventory Master
-====================
+DTM Inventory - Desktop apps and installers
+==========================================
 
-Install location
-----------------
-Default (no admin): %LOCALAPPDATA%\Programs\DTM Inventory
-Admin / MSI:        %ProgramFiles%\DTMInventoryMaster
+Preferred end-user apps (standalone .exe)
+----------------------------------------
+Build on Windows:
 
-Open "DTM Inventory Master" from Start Menu or desktop.
-No browser. No command prompt windows.
+  cd C:\dev\dtm-inventory-master
+  pnpm install
+  pnpm master:app
 
-Database
---------
-%ProgramData%\DTMInventory\catalog.sqlite
-(or %LOCALAPPDATA%\DTMInventory if ProgramData is blocked)
+Outputs:
+  artifacts\master-server\dist\desktop\DTM Inventory Master-win32-x64\DTMInventoryMaster.exe
+  artifacts\master-server\dist\desktop\DTM Inventory Setup-win32-x64\DTMInventorySetup.exe
+  artifacts\master-server\dist\installer\DTMInventoryMaster.exe
+  artifacts\master-server\dist\installer\DTMInventorySetup.exe
+  artifacts\master-server\dist\installer\DTMInventoryMaster-App-Win64.zip
+  artifacts\master-server\dist\installer\DTMInventorySetup-App-Win64.zip
 
-Developers
-----------
-pnpm install
-pnpm master:dev
-pnpm setup:dev
+These .exe apps embed Electron and use the DTM cube app icon.
+They boot the same UI as:
 
-Notes
------
-- Setup defaults to a user-writable folder (no Program Files / EPERM).
-- Master GUI runs the database API under system Node.js so better-sqlite3
-  matches your Node version (fixes Electron NODE_MODULE_VERSION errors).
+  pnpm master:dev
+  pnpm setup:dev
+
+Optional MSI
+------------
+  pnpm master:setup
+  (requires WiX: wix accept eula)
+
+Icon
+----
+src\gui\shared\brand\app.ico  (from your cube logo)

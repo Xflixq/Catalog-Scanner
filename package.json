@@ -11,7 +11,9 @@
     "master:api": "pnpm --filter @workspace/master-server dev:api",
     "master:rebuild": "pnpm rebuild better-sqlite3",
     "master:build": "pnpm --filter @workspace/master-server build:exe",
-    "postinstall": "node ./scripts/doctor.mjs || exit 0"
+    "postinstall": "node ./scripts/doctor.mjs || exit 0",
+    "master:app": "pnpm --filter @workspace/master-server build:app",
+    "master:setup": "pnpm master:app && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-setup.ps1"
   },
   "devDependencies": {
     "typescript": "~5.9.3"
