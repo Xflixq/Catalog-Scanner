@@ -83,32 +83,65 @@ function listNodeCandidates() {
   return unique(out);
 }
 
+function sqliteModuleCandidates() {
+  return unique([
+    path.join(repoRoot, 'node_modules', 'better-sqlite3'),
+    path.join(packageRoot, 'node_modules', 'better-sqlite3'),
+    path.join(repoRoot, 'node_modules', '.pnpm', 'node_modules', 'better-sqlite3'),
+  ]).filter((p) => fs.existsSync(p));
+}
+
 function nodeCanLoadSqlite(nodeBin) {
-  // Probe with the same module resolution path the API child will use.
-  const probe = [
-    `const path=require('path');`,
-    `const roots=${JSON.stringify([packageRoot, repoRoot])};`,
-    `let last=null;`,
-    `for (const root of roots){`,
-    `  try {`,
-    `    const mod=require(require('module').createRequire(path.join(root,'package.json')).resolve('better-sqlite3'));`,
-    `    const Database=mod.default||mod;`,
-    `    const db=new Database(':memory:');`,
-    `    db.close();`,
-    `    process.stdout.write('OK');`,
-    `    process.exit(0);`,
-    `  } catch(e){ last=e; }`,
-    `}`,
-    `process.stderr.write(String(last&&last.message||last||'better-sqlite3 failed'));`,
-    `process.exit(1);`,
-  ].join('');
+  // Resolve better-sqlite3 by absolute path so hoisted installs work.
+  const modules = sqliteModuleCandidates();
+  if (!modules.length) {
+    return {
+      ok: false,
+      stdout: '',
+      stderr: `better-sqlite3 not found under:\n- ${path.join(repoRoot, 'node_modules')}\n- ${path.join(packageRoot, 'node_modules')}\nRun: pnpm install`,
+      error: '',
+    };
+  }
+
+  const probe = `
+const fs = require('fs');
+const path = require('path');
+const modules = ${JSON.stringify(modules)};
+let last = null;
+for (const modPath of modules) {
+  try {
+    const pkg = path.join(modPath, 'package.json');
+    if (!fs.existsSync(pkg)) continue;
+    const mod = require(modPath);
+    const Database = mod.default || mod;
+    const db = new Database(':memory:');
+    db.exec('select 1');
+    db.close();
+    process.stdout.write('OK|' + modPath);
+    process.exit(0);
+  } catch (e) {
+    last = e;
+  }
+}
+process.stderr.write(String((last && (last.stack || last.message)) || 'better-sqlite3 failed'));
+process.exit(1);
+`;
 
   const result = spawnSync(nodeBin, ['-e', probe], {
-    cwd: packageRoot,
+    cwd: repoRoot,
     encoding: 'utf8',
     windowsHide: true,
-    timeout: 15000,
-    env: process.env,
+    timeout: 20000,
+    env: {
+      ...process.env,
+      NODE_PATH: [
+        path.join(repoRoot, 'node_modules'),
+        path.join(packageRoot, 'node_modules'),
+        process.env.NODE_PATH || '',
+      ]
+        .filter(Boolean)
+        .join(path.delimiter),
+    },
   });
   return {
     ok: result.status === 0 && String(result.stdout || '').includes('OK'),
@@ -119,61 +152,54 @@ function nodeCanLoadSqlite(nodeBin) {
 }
 
 function rebuildSqliteForNode(nodeBin) {
-  // Rebuild better-sqlite3 for the selected Node binary (not Electron).
+  // Rebuild better-sqlite3 against the selected system Node binary.
   const pnpmCmd = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+  const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  const env = {
+    ...process.env,
+    npm_config_runtime: 'node',
+    npm_config_build_from_source: 'true',
+    NODE_PATH: [
+      path.join(repoRoot, 'node_modules'),
+      path.join(packageRoot, 'node_modules'),
+      process.env.NODE_PATH || '',
+    ]
+      .filter(Boolean)
+      .join(path.delimiter),
+  };
+
   const attempts = [
+    // Preferred: rebuild from monorepo root (hoisted better-sqlite3 lives here)
+    { cmd: pnpmCmd, args: ['rebuild', 'better-sqlite3'], cwd: repoRoot },
+    // Fallback: npm rebuild in root node_modules
+    { cmd: npmCmd, args: ['rebuild', 'better-sqlite3', '--prefix', repoRoot], cwd: repoRoot },
+    // Fallback: npm rebuild inside the package folder if present
+    { cmd: npmCmd, args: ['rebuild', 'better-sqlite3'], cwd: packageRoot },
+    // Last resort: node-gyp style via npm using explicit node binary
     {
-      cmd: pnpmCmd,
-      args: ['rebuild', 'better-sqlite3', '--filter', '@workspace/master-server'],
+      cmd: npmCmd,
+      args: ['rebuild', 'better-sqlite3', '--prefix', repoRoot],
       cwd: repoRoot,
-    },
-    {
-      cmd: pnpmCmd,
-      args: ['rebuild', 'better-sqlite3'],
-      cwd: packageRoot,
-    },
-    {
-      cmd: nodeBin,
-      args: [
-        path.join(
-          repoRoot,
-          'node_modules',
-          'pnpm',
-          'bin',
-          'pnpm.cjs',
-        ),
-        'rebuild',
-        'better-sqlite3',
-      ],
-      cwd: repoRoot,
+      env: { ...env, npm_config_scripts_prepend_node_path: 'true' },
     },
   ];
 
   const logs = [];
   for (const attempt of attempts) {
-    // Skip missing pnpm.cjs path quietly
-    if (attempt.cmd === nodeBin && !fs.existsSync(attempt.args[0])) continue;
     const result = spawnSync(attempt.cmd, attempt.args, {
       cwd: attempt.cwd,
       encoding: 'utf8',
       windowsHide: true,
-      timeout: 60000,
+      timeout: 120000,
       shell: process.platform === 'win32',
-      env: {
-        ...process.env,
-        npm_config_runtime: 'node',
-        npm_config_target: '',
-        npm_config_disturl: '',
-      },
+      env: attempt.env || env,
     });
     logs.push(
       `$ ${attempt.cmd} ${attempt.args.join(' ')}\n` +
         `${result.stdout || ''}\n${result.stderr || ''}\nexit ${result.status}`,
     );
-    if (result.status === 0) {
-      const check = nodeCanLoadSqlite(nodeBin);
-      if (check.ok) return { ok: true, log: logs.join('\n\n') };
-    }
+    const check = nodeCanLoadSqlite(nodeBin);
+    if (check.ok) return { ok: true, log: logs.join('\n\n') };
   }
   return { ok: false, log: logs.join('\n\n') };
 }
@@ -341,6 +367,13 @@ async function bootService() {
       // Ensure child is plain Node, never Electron-as-node.
       ELECTRON_RUN_AS_NODE: '',
       npm_config_runtime: 'node',
+      NODE_PATH: [
+        path.join(repoRoot, 'node_modules'),
+        path.join(packageRoot, 'node_modules'),
+        process.env.NODE_PATH || '',
+      ]
+        .filter(Boolean)
+        .join(path.delimiter),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,

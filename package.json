@@ -9,7 +9,7 @@
     "master:dev": "pnpm --filter @workspace/master-server start",
     "setup:dev": "pnpm --filter @workspace/master-server setup:dev",
     "master:api": "pnpm --filter @workspace/master-server dev:api",
-    "master:rebuild": "pnpm --filter @workspace/master-server rebuild better-sqlite3",
+    "master:rebuild": "pnpm rebuild better-sqlite3",
     "master:build": "pnpm --filter @workspace/master-server build:exe",
     "postinstall": "node ./scripts/doctor.mjs || exit 0"
   },
