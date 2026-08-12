@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="DTM Inventory Master"
+    Manufacturer="DTM"
+    Version="1.0.0"
+    UpgradeCode="8F3C2A11-6B9E-4D2F-9C71-1A0E5B8D4F22"
+    Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="DTMInventoryMaster" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="DTM Inventory" />
+    </StandardDirectory>
+
+    <Feature Id="ProductFeature" Title="DTM Inventory Master" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="MainBundle" Guid="*">
+        <File Id="MasterCjs" Source="$(StageDir)\dtm-inventory-master.cjs" KeyPath="yes" />
+      </Component>
+      <Component Id="LaunchVbs" Guid="*">
+        <File Id="LaunchMasterVbs" Source="$(StageDir)\Launch Master.vbs" KeyPath="yes" />
+        <Shortcut
+          Id="StartMenuShortcut"
+          Directory="ApplicationProgramsFolder"
+          Name="DTM Inventory Master"
+          Target="[System64Folder]wscript.exe"
+          Arguments="//B &quot;[INSTALLFOLDER]Launch Master.vbs&quot;"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveStartMenu" Directory="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\DTM\DTMInventory" Name="installed" Type="integer" Value="1" />
+      </Component>
+      <Component Id="RunCmd" Guid="*">
+        <File Id="RunMasterCmd" Source="$(StageDir)\run-master.cmd" KeyPath="yes" />
+      </Component>
+      <Component Id="Readme" Guid="*">
+        <File Id="ReadmeInstall" Source="$(StageDir)\README-INSTALL.txt" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Package>
+</Wix>

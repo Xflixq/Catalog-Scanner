@@ -1,28 +1,32 @@
 {
-  "name": "workspace",
-  "version": "0.0.0",
-  "license": "MIT",
+  "name": "dtm-inventory",
+  "version": "1.3.2",
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "scripts": {
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "android:add-expo": "pnpm --filter @workspace/catalog-scanner-android add expo@~54.0.27",
-    "android:dev": "pnpm --filter @workspace/catalog-scanner-android run dev",
-    "android:dev:tunnel": "pnpm --filter @workspace/catalog-scanner-android run dev:tunnel",
-    "android:apk": "pnpm --filter @workspace/catalog-scanner-android exec node ./scripts/build-apk.mjs",
-    "web:dev": "pnpm --filter @workspace/catalog-scanner-web run dev",
+    "doctor": "node ./scripts/doctor.mjs",
+    "repair": "node ./scripts/repair.mjs",
     "master:dev": "pnpm --filter @workspace/master-server start",
+    "setup:dev": "pnpm --filter @workspace/master-server setup:dev",
+    "master:api": "pnpm --filter @workspace/master-server dev:api",
+    "master:rebuild": "pnpm rebuild better-sqlite3",
     "master:build": "pnpm --filter @workspace/master-server build:exe",
-    "master:msi": "pnpm master:build && pwsh -File artifacts/master-server/installer/build-msi.ps1",
-    "downloads:build": "pnpm --filter @workspace/downloads-portal build",
-    "downloads:dev": "pnpm --filter @workspace/downloads-portal start",
-    "build:all": "pwsh -File scripts/build-all.ps1",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "postinstall": "node ./scripts/doctor.mjs || exit 0",
+    "master:app": "pnpm --filter @workspace/master-server build:app",
+    "master:setup": "pnpm master:app && pnpm master:msi",
+    "android:apk": "pnpm --filter @workspace/dtm-inventory-android apk",
+    "android:publish-apk": "pnpm --filter @workspace/dtm-inventory-android apk:publish",
+    "android:prebuild": "pnpm --filter @workspace/dtm-inventory-android prebuild:android",
+    "master:publish-downloads": "pnpm --filter @workspace/master-server exec node ./scripts/publish-downloads.mjs",
+    "master:msi": "pnpm --filter @workspace/master-server build:msi",
+    "downloads:serve": "pnpm --filter @workspace/downloads-portal start",
+    "release:github": "node ./scripts/publish-github-release.mjs"
   },
   "devDependencies": {
-    "@types/react": "~19.1.10",
-    "prettier": "^3.9.6",
     "typescript": "~5.9.3"
+  },
+  "pnpm": {
+    "neverBuiltDependencies": [],
+    "overrides": {}
   }
 }

@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Catalog Scanner Android",
-    "slug": "catalog-scanner-android",
+    "name": "DTM Inventory",
+    "slug": "dtm-inventory-android",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "catalog-scanner-android",
+    "scheme": "dtm-inventory",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -18,19 +18,18 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
+      "package": "com.dtm.inventory",
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.anonymous.catalogscannerandroid"
+      "versionCode": 1
     },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/favicon.png"
     },
     "updates": {
       "checkAutomatically": "NEVER"
@@ -40,7 +39,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Catalog Scanner to use your camera to scan product barcodes."
+          "cameraPermission": "Allow DTM Inventory to use your camera to scan product barcodes."
         }
       ],
       "expo-font",

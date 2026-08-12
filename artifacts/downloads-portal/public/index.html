@@ -3,28 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Catalog Scanner Downloads</title>
+    <title>DTM Inventory Downloads</title>
+    <link rel="icon" href="./logo.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="shell">
-      <header>
-        <p class="eyebrow">LOCAL DOWNLOADS</p>
-        <h1>Catalog Scanner</h1>
-        <p class="muted">Small local page for master PC, Android, and helper packages produced by the one-command build.</p>
+      <header class="hero">
+        <img class="logo" src="./logo.png" alt="DTM Inventory" />
+        <div>
+          <p class="eyebrow">DTM SUITE</p>
+          <h1>DTM Inventory Downloads</h1>
+          <p class="muted">Official installers for Master, Setup (warehouse PCs), and Android.</p>
+          <p class="muted small">Hosted at <strong>dtmsuite.xflixq.com/downloads</strong> · also on GitHub Releases</p>
+        </div>
       </header>
 
-      <section class="card">
-        <p class="eyebrow">PACKAGES</p>
+      <section class="grid" id="cards">
+        <article class="card" data-key="setup">
+          <div class="badge">Windows</div>
+          <h2>Setup (MSI)</h2>
+          <p>Non-master installer for warehouse PCs.</p>
+          <div class="meta" id="meta-setup">Looking for DTMInventorySetup.msi…</div>
+          <a class="btn" id="btn-setup" href="#">Download MSI</a>
+        </article>
+        <article class="card" data-key="master">
+          <div class="badge">Windows</div>
+          <h2>Master (MSI)</h2>
+          <p>Shared inventory host + desktop admin app.</p>
+          <div class="meta" id="meta-master">Looking for DTMInventoryMaster.msi…</div>
+          <a class="btn" id="btn-master" href="#">Download MSI</a>
+        </article>
+        <article class="card" data-key="android">
+          <div class="badge">Android</div>
+          <h2>Phone app (APK)</h2>
+          <p>Scan barcodes and sync to Master.</p>
+          <div class="meta" id="meta-android">Looking for DTMInventory.apk…</div>
+          <a class="btn" id="btn-android" href="#">Download APK</a>
+        </article>
+      </section>
+
+      <section class="card list-card">
+        <p class="eyebrow">ALL FILES</p>
         <div id="list" class="list">Loading…</div>
       </section>
 
       <section class="card">
         <p class="eyebrow">NOTES</p>
         <ul class="notes">
-          <li>Master MSI / portable zip installs the shared database host.</li>
-          <li>Android APK pairs with the master via tether QR on first boot.</li>
-          <li>Rebuild anytime with <code>pwsh -File scripts/build-all.ps1</code>.</li>
+          <li>Prefer <strong>MSI</strong> installers (not zip).</li>
+          <li>GitHub Releases mirror the same files for versioned history.</li>
+          <li>After install, open Master and pair Android via the tether QR.</li>
         </ul>
       </section>
     </main>

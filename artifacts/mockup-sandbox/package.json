@@ -39,7 +39,7 @@
     "@radix-ui/react-toggle-group": "^1.1.19",
     "@radix-ui/react-tooltip": "^1.2.16",
     "@tailwindcss/vite": "catalog:",
-    "@types/node": "catalog:",
+    "@types/node": "^22.13.10",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",

@@ -3,15 +3,22 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Portable Catalog Scanner master PC server (tether QR, login codes, shared DB)",
+  "description": "DTM Inventory Master desktop app + pairing API",
   "bin": {
-    "catalog-scanner-master": "./src/cli.js"
+    "dtm-inventory-master": "./src/cli.js"
   },
   "scripts": {
-    "dev": "node src/cli.js",
-    "start": "node src/cli.js",
+    "dev": "node ../../scripts/run-electron.mjs src/gui/master/main.mjs",
+    "start": "node ../../scripts/run-electron.mjs src/gui/master/main.mjs",
+    "dev:api": "node src/cli.js",
+    "setup:dev": "node ../../scripts/run-electron.mjs src/gui/setup/main.mjs",
     "build:exe": "node scripts/build-exe.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "rebuild:native": "pnpm rebuild better-sqlite3",
+    "postinstall": "node -e \"try{require('better-sqlite3');console.log('better-sqlite3 ok for Node '+process.version)}catch(e){console.warn('better-sqlite3 needs rebuild for',process.version,'-',e.message); process.exitCode=0}\"",
+    "build:app": "node scripts/build-desktop-apps.mjs",
+    "build:msi": "node ../../scripts/run-ps1.mjs installer/build-msi-apps.ps1",
+    "build:setup": "node ../../scripts/run-ps1.mjs installer/build-setup.ps1"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
@@ -23,9 +30,15 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/node": "catalog:",
+    "@types/node": "^22.13.10",
     "@types/qrcode": "^1.5.5",
+    "electron": "33.2.1",
     "esbuild": "0.27.3",
-    "typescript": "~5.9.2"
-  }
+    "typescript": "~5.9.2",
+    "@electron/packager": "^18.3.6",
+    "@electron/rebuild": "^3.7.1"
+  },
+  "main": "src/gui/master/main.mjs",
+  "optionalDependencies": {},
+  "productName": "DTM Inventory Master"
 }

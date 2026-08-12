@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/catalog-scanner-web",
+  "name": "@workspace/dtm-inventory-web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -41,7 +41,7 @@
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query": "catalog:",
-    "@types/node": "catalog:",
+    "@types/node": "^22.13.10",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",

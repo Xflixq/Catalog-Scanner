@@ -499,9 +499,9 @@ function Home() {
       <header className="border-b border-black bg-white">
         <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-4 sm:px-8 lg:px-10">
           <div className="flex items-center gap-3">
-            <img src={DtmLogo} alt="DTM Fabrications" className="h-10 w-auto" />
+            <img src={DtmLogo} alt="DTM" className="h-10 w-auto" />
             <div>
-              <h1 className="text-lg font-bold tracking-[-.04em] text-black">DTM Fabrications</h1>
+              <h1 className="text-lg font-bold tracking-[-.04em] text-black">DTM</h1>
               {session ? <p className="font-mono text-[10px] text-black/70">{session.baseUrl}</p> : null}
             </div>
           </div>

@@ -549,7 +549,7 @@ export default function CatalogHome() {
             <View style={styles.header}>
               <View>
                 <Text style={styles.eyebrow}>MASTER CONNECTED</Text>
-                <Text style={styles.brandName}>DTM Fabrications</Text>
+                <Text style={styles.brandName}>DTM Inventory</Text>
                 <Text style={styles.monoSmall}>{session.baseUrl}</Text>
               </View>
               <Pressable
