@@ -8,7 +8,10 @@
       "android": {
         "buildType": "apk"
       },
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "preview"
+      }
     },
     "production": {
       "android": {
@@ -19,7 +22,13 @@
       "android": {
         "buildType": "apk"
       },
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "local"
+      }
     }
+  },
+  "submit": {
+    "production": {}
   }
 }

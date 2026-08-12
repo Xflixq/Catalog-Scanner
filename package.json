@@ -13,7 +13,10 @@
     "master:build": "pnpm --filter @workspace/master-server build:exe",
     "postinstall": "node ./scripts/doctor.mjs || exit 0",
     "master:app": "pnpm --filter @workspace/master-server build:app",
-    "master:setup": "pnpm master:app && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-setup.ps1"
+    "master:setup": "pnpm master:app && node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-setup.ps1",
+    "android:apk": "pnpm --filter @workspace/dtm-inventory-android apk",
+    "android:publish-apk": "pnpm --filter @workspace/dtm-inventory-android apk:publish",
+    "android:prebuild": "pnpm --filter @workspace/dtm-inventory-android prebuild:android"
   },
   "devDependencies": {
     "typescript": "~5.9.3"

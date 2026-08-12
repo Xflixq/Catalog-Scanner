@@ -42,6 +42,9 @@ export function loadConfig() {
   if (process.env.PORT) {
     config.port = Number(process.env.PORT);
   }
+  if (process.env.HOST) {
+    config.host = String(process.env.HOST);
+  }
   fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
   return { ...config, dataDir, configPath };

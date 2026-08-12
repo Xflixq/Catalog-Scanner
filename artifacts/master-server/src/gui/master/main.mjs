@@ -32,14 +32,14 @@ function createWindow() {
   ].find((p) => {
     try { return p && fs.existsSync(p); } catch { return false; }
   });
-  const win = new BrowserWindow({
+  /** @type {import('electron').BrowserWindowConstructorOptions} */
+  const winOpts = {
     width: 1280,
     height: 860,
     minWidth: 820,
     minHeight: 600,
     backgroundColor: '#FAFBFE',
     title: 'DTM Inventory Master',
-    icon: iconPath,
     frame: false,
     titleBarStyle: 'hidden',
     autoHideMenuBar: true,
@@ -50,7 +50,9 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: false,
     },
-  });
+  };
+  if (iconPath) winOpts.icon = iconPath;
+  const win = new BrowserWindow(winOpts);
   win.setMenuBarVisibility(false);
   win.loadFile(path.join(__dirname, 'index.html'));
   win.once('ready-to-show', () => win.show());
@@ -70,7 +72,7 @@ async function bootServiceInProcess() {
   // Used by packaged .exe where better-sqlite3 is rebuilt for Electron.
   const { startMasterService } = await import('../../service.js');
   const { pickPrimaryLanIp } = await import('../../lib/network.js');
-  const started = await startMasterService({ host: '127.0.0.1' });
+  const started = await startMasterService({ host: '0.0.0.0' });
   config = started.config;
   baseUrl = `http://127.0.0.1:${config.port}`;
   // lightweight status helpers via HTTP still work against local server
@@ -406,7 +408,7 @@ async function bootService() {
     env: {
       ...process.env,
       PORT: String(config.port),
-      HOST: '127.0.0.1',
+      HOST: '0.0.0.0',
       DTM_INVENTORY_DATA_DIR: config.dataDir,
       CATALOG_SCANNER_DATA_DIR: config.dataDir,
       // Ensure child is plain Node, never Electron-as-node.
@@ -582,8 +584,16 @@ function stopApiChild() {
 
 app.whenReady().then(async () => {
   try {
-    // Allow one rebuild attempt inside the 30s window when possible.
-    await withTimeout(isPackagedApp() ? bootServiceInProcess() : bootService(), Math.max(DEFAULT_TIMEOUT_MS, 45000), 'Master startup');
+    if (isPackagedApp()) {
+      try {
+        await withTimeout(bootServiceInProcess(), Math.max(DEFAULT_TIMEOUT_MS, 45000), 'Master startup');
+      } catch (inProcErr) {
+        console.error('In-process API failed, falling back to Node child:', inProcErr);
+        await withTimeout(bootService(), Math.max(DEFAULT_TIMEOUT_MS, 45000), 'Master startup');
+      }
+    } else {
+      await withTimeout(bootService(), Math.max(DEFAULT_TIMEOUT_MS, 45000), 'Master startup');
+    }
   } catch (err) {
     dialog.showErrorBox(
       'DTM Inventory Master',
@@ -593,8 +603,18 @@ app.whenReady().then(async () => {
     app.quit();
     return;
   }
-  wireIpc();
-  createWindow();
+  try {
+    wireIpc();
+    createWindow();
+  } catch (err) {
+    dialog.showErrorBox(
+      'DTM Inventory Master',
+      'UI failed to open:\n' + (err instanceof Error ? err.stack || err.message : String(err)),
+    );
+    stopApiChild();
+    app.quit();
+    return;
+  }
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

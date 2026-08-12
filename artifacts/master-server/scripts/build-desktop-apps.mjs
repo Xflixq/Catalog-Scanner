@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * Build standalone desktop apps with embedded Electron runtime + DTM icon.
- * Same UI/boot path as `pnpm master:dev` and `pnpm setup:dev`.
+ * Build standalone desktop apps with embedded Electron + DTM icon.
+ * Same UI path as `pnpm master:dev` / `pnpm setup:dev`.
  *
- * Outputs under:
- *   artifacts/master-server/dist/desktop/
- *   artifacts/master-server/dist/installer/
+ * Windows outputs:
+ *   dist/desktop/DTM Inventory Master-win32-x64/DTMInventoryMaster.exe
+ *   dist/desktop/DTM Inventory Setup-win32-x64/DTMInventorySetup.exe
+ *   dist/installer/*.zip + copied .exe
+ *   dist/downloads/  (served by Master download page)
  */
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
@@ -18,14 +20,14 @@ const pkgRoot = path.resolve(__dirname, '..');
 const distDir = path.join(pkgRoot, 'dist');
 const desktopDir = path.join(distDir, 'desktop');
 const installerDir = path.join(distDir, 'installer');
+const downloadsDir = path.join(distDir, 'downloads');
 const iconIco = path.join(pkgRoot, 'src/gui/shared/brand/app.ico');
 const require = createRequire(path.join(pkgRoot, 'package.json'));
 
-const exists = (p) => {
-  try { return fs.existsSync(p); } catch { return false; }
-};
+const exists = (p) => { try { return fs.existsSync(p); } catch { return false; } };
 const rm = (p) => { if (exists(p)) fs.rmSync(p, { recursive: true, force: true }); };
-function copyDir(src, dest, ignore = new Set(['node_modules', 'dist', '.git'])) {
+
+function copyDir(src, dest, ignore = new Set(['node_modules', 'dist', '.git', '.expo'])) {
   fs.mkdirSync(dest, { recursive: true });
   for (const name of fs.readdirSync(src)) {
     if (ignore.has(name)) continue;
@@ -47,11 +49,11 @@ function run(cmd, args, opts = {}) {
     stdio: 'inherit',
     shell: process.platform === 'win32',
     env: { ...process.env, ...(opts.env || {}) },
-    timeout: opts.timeout || 15 * 60 * 1000,
+    timeout: opts.timeout || 20 * 60 * 1000,
   });
   if (r.status !== 0) throw new Error(`${cmd} failed (${r.status})`);
+  return r;
 }
-
 function loadPackager() {
   try { return require('@electron/packager'); }
   catch {
@@ -59,7 +61,6 @@ function loadPackager() {
     catch { return null; }
   }
 }
-
 function zipDir(srcDir, zipPath) {
   rm(zipPath);
   if (process.platform === 'win32') {
@@ -87,27 +88,28 @@ print('zip', out, out.stat().st_size)
 async function packageApp({ productName, entryRelative, outName }) {
   const packager = loadPackager();
   if (!packager) {
-    throw new Error('Missing @electron/packager. Run pnpm install in the monorepo root.');
+    throw new Error('Missing @electron/packager. Run: pnpm install');
   }
 
   const stage = path.join(distDir, `stage-${outName}`);
   rm(stage);
   fs.mkdirSync(stage, { recursive: true });
 
-  // Packaged CJS main -> dynamic import ESM GUI entry (same as dev)
+  // Electron 33 supports native ESM main — use the same entry as dev.
+  const rootPkg = require(path.join(pkgRoot, 'package.json'));
+  // Keep CJS bridge as fallback for older electron runtimes.
   fs.copyFileSync(path.join(pkgRoot, 'scripts/package-main.cjs'), path.join(stage, 'package-main.cjs'));
   fs.writeFileSync(
     path.join(stage, 'main.cjs'),
     `process.env.DTM_ENTRY = ${JSON.stringify(entryRelative)};\nrequire('./package-main.cjs');\n`,
   );
-
-  const rootPkg = require(path.join(pkgRoot, 'package.json'));
   writeJson(path.join(stage, 'package.json'), {
     name: outName.toLowerCase(),
     productName,
-    version: '1.1.0',
+    version: rootPkg.version || '1.2.0',
     private: true,
-    main: 'main.cjs',
+    type: 'module',
+    main: entryRelative, // same path as pnpm master:dev / setup:dev
     dependencies: {
       'better-sqlite3': rootPkg.dependencies['better-sqlite3'],
       cors: rootPkg.dependencies.cors,
@@ -116,20 +118,26 @@ async function packageApp({ productName, entryRelative, outName }) {
     },
   });
 
+  // Full source tree needed by ESM imports
   copyDir(path.join(pkgRoot, 'src'), path.join(stage, 'src'));
+  // Public download page assets
+  if (exists(path.join(pkgRoot, 'src/public'))) {
+    copyDir(path.join(pkgRoot, 'src/public'), path.join(stage, 'public'));
+  }
   if (exists(iconIco)) fs.copyFileSync(iconIco, path.join(stage, 'app.ico'));
 
   // Install runtime deps into stage
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   let install = spawnSync(npm, ['install', '--omit=dev', '--no-audit', '--no-fund'], {
-    cwd: stage, stdio: 'inherit', shell: process.platform === 'win32', timeout: 10 * 60 * 1000, env: process.env,
+    cwd: stage, stdio: 'inherit', shell: process.platform === 'win32',
+    timeout: 10 * 60 * 1000, env: process.env,
   });
   if (install.status !== 0) {
     const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
     run(pnpm, ['install', '--prod'], { cwd: stage });
   }
 
-  // Rebuild better-sqlite3 for Electron ABI (packaged in-process API)
+  // Rebuild better-sqlite3 for Electron ABI (packaged Master uses in-process API)
   try {
     const { rebuild } = require('@electron/rebuild');
     const electronVersion = require('electron/package.json').version;
@@ -172,32 +180,61 @@ async function packageApp({ productName, entryRelative, outName }) {
   const appDir = outputPaths[0];
   console.log('Packaged', productName, '->', appDir);
 
-  // Friendly launcher + readme
+  // Friendly launcher that keeps a console log if the GUI fails
   if (platform === 'win32') {
-    fs.writeFileSync(path.join(appDir, `Start ${productName}.cmd`), `@echo off\r\nstart "" "%~dp0${outName}.exe"\r\n`);
+    fs.writeFileSync(
+      path.join(appDir, `Start ${productName}.cmd`),
+      [
+        '@echo off',
+        'cd /d "%~dp0"',
+        `start "" "%~dp0${outName}.exe"`,
+        '',
+      ].join('\r\n'),
+    );
+    fs.writeFileSync(
+      path.join(appDir, `Debug ${productName}.cmd`),
+      [
+        '@echo off',
+        'cd /d "%~dp0"',
+        `echo Launching ${outName}.exe ...`,
+        `"%~dp0${outName}.exe"`,
+        'echo.',
+        'echo Exit code: %ERRORLEVEL%',
+        'pause',
+        '',
+      ].join('\r\n'),
+    );
   }
   if (exists(iconIco)) fs.copyFileSync(iconIco, path.join(appDir, 'app.ico'));
   fs.writeFileSync(
     path.join(appDir, 'README.txt'),
-    `${productName}\n\nDouble-click ${outName}.exe\n\nStandalone desktop app (Electron runtime embedded).\nSame experience as the dev command-prompt launcher.\n`,
+    `${productName}\n\nDouble-click ${outName}.exe\nIf nothing opens, run "Debug ${productName}.cmd" and send the error text.\n`,
   );
   return appDir;
 }
 
+function findExe(dir, base) {
+  if (!dir || !exists(dir)) return null;
+  const direct = path.join(dir, `${base}.exe`);
+  if (exists(direct)) return direct;
+  for (const name of fs.readdirSync(dir)) {
+    if (name.toLowerCase().endsWith('.exe')) return path.join(dir, name);
+  }
+  return null;
+}
+
 fs.mkdirSync(desktopDir, { recursive: true });
 fs.mkdirSync(installerDir, { recursive: true });
+fs.mkdirSync(downloadsDir, { recursive: true });
 
-// Ensure API payload exists too
+// Ensure API bundle exists (best effort)
 console.log('Building API bundle/payload...');
 try {
   run(process.execPath, [path.join(pkgRoot, 'scripts/build-exe.mjs')], { timeout: 3 * 60 * 1000 });
 } catch (err) {
   const bundle = path.join(distDir, 'dtm-inventory-master.cjs');
-  if (exists(bundle)) {
-    console.warn('API bundle build warning (using existing bundle):', err.message || err);
-  } else {
-    throw err;
-  }
+  if (exists(bundle)) console.warn('API bundle build warning (using existing):', err.message || err);
+  else console.warn('API bundle missing; continuing desktop packaging');
 }
 
 const masterDir = await packageApp({
@@ -211,27 +248,47 @@ const setupDir = await packageApp({
   outName: 'DTMInventorySetup',
 });
 
-function findExe(dir, base) {
-  if (!dir || !exists(dir)) return null;
-  const direct = path.join(dir, `${base}.exe`);
-  if (exists(direct)) return direct;
-  for (const name of fs.readdirSync(dir)) {
-    if (name.toLowerCase().endsWith('.exe')) return path.join(dir, name);
-  }
-  return null;
-}
-
 const masterExe = findExe(masterDir, 'DTMInventoryMaster');
 const setupExe = findExe(setupDir, 'DTMInventorySetup');
 if (masterExe) fs.copyFileSync(masterExe, path.join(installerDir, 'DTMInventoryMaster.exe'));
 if (setupExe) fs.copyFileSync(setupExe, path.join(installerDir, 'DTMInventorySetup.exe'));
 
-if (exists(masterDir)) zipDir(masterDir, path.join(installerDir, 'DTMInventoryMaster-App-Win64.zip'));
-if (exists(setupDir)) zipDir(setupDir, path.join(installerDir, 'DTMInventorySetup-App-Win64.zip'));
+// Non-master Windows installer package (Setup app zip) for download page
+if (exists(setupDir)) {
+  const setupZip = path.join(installerDir, 'DTMInventorySetup-App-Win64.zip');
+  zipDir(setupDir, setupZip);
+  fs.copyFileSync(setupZip, path.join(downloadsDir, 'DTMInventory-Setup-Windows.zip'));
+  // Also expose bare exe if present
+  if (setupExe) fs.copyFileSync(setupExe, path.join(downloadsDir, 'DTMInventorySetup.exe'));
+}
+if (exists(masterDir)) {
+  const masterZip = path.join(installerDir, 'DTMInventoryMaster-App-Win64.zip');
+  zipDir(masterDir, masterZip);
+  fs.copyFileSync(masterZip, path.join(downloadsDir, 'DTMInventory-Master-Windows.zip'));
+  if (masterExe) fs.copyFileSync(masterExe, path.join(downloadsDir, 'DTMInventoryMaster.exe'));
+}
+
+// Placeholder APK note until built
+const apkNote = path.join(downloadsDir, 'ANDROID-APK.txt');
+if (!exists(path.join(downloadsDir, 'DTMInventory.apk'))) {
+  fs.writeFileSync(
+    apkNote,
+    'Place DTMInventory.apk here after building:\n  pnpm android:apk\n\nThen restart Master. The download page QR will point at /downloads/DTMInventory.apk\n',
+  );
+}
+
+// Copy icon for download page branding
+if (exists(path.join(pkgRoot, 'src/gui/shared/brand/icon-256.png'))) {
+  fs.copyFileSync(
+    path.join(pkgRoot, 'src/gui/shared/brand/icon-256.png'),
+    path.join(downloadsDir, 'icon.png'),
+  );
+}
 
 console.log('\nDone.');
 console.log('Desktop apps:', desktopDir);
 console.log('Installer outputs:', installerDir);
+console.log('Download page files:', downloadsDir);
 if (!masterExe) {
-  console.log('Note: .exe is produced on Windows. On Linux/mac this build creates the platform binary.');
+  console.log('Note: .exe is produced on Windows. Build there with: pnpm master:app');
 }

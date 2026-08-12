@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * Best-effort APK builder for DTM Inventory Android.
+ * Build DTM Inventory Android APK and publish it to Master downloads.
  *
- * Order:
- * 1) eas build --local --platform android --profile local-apk  (if eas-cli + Android SDK available)
- * 2) expo prebuild + gradle assembleRelease                   (if Android SDK / JDK available)
- * 3) expo export --platform android                           (JS bundle fallback for downloads portal)
+ * Strategies (first that works):
+ *  1) Local Gradle: android/gradlew assembleRelease (needs Android SDK)
+ *  2) EAS local: eas build -p android --profile local-apk --local
+ *  3) EAS cloud: eas build -p android --profile preview --non-interactive
+ *
+ * Output:
+ *  artifacts/catalog-scanner-android/dist/DTMInventory.apk
+ *  artifacts/master-server/dist/downloads/DTMInventory.apk
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -15,111 +19,126 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(appRoot, '../..');
-const outDir = path.resolve(repoRoot, 'dist/downloads');
-const isWin = process.platform === 'win32';
-const pnpm = isWin ? 'pnpm.cmd' : 'pnpm';
+const outDir = path.join(appRoot, 'dist');
+const masterDownloads = path.join(repoRoot, 'artifacts/master-server/dist/downloads');
+const dataDownloadsCandidates = [];
 
-fs.mkdirSync(outDir, { recursive: true });
-
+const exists = (p) => { try { return fs.existsSync(p); } catch { return false; } };
 function run(cmd, args, opts = {}) {
-  console.log(`$ ${cmd} ${args.join(' ')}`);
-  return spawnSync(cmd, args, {
+  console.log(`\n$ ${cmd} ${args.join(' ')}`);
+  const r = spawnSync(cmd, args, {
     cwd: opts.cwd || appRoot,
     stdio: 'inherit',
-    shell: true,
+    shell: process.platform === 'win32',
     env: { ...process.env, ...(opts.env || {}) },
+    timeout: opts.timeout || 60 * 60 * 1000,
   });
+  return r.status === 0;
 }
-
-function copyIfExists(src, destName) {
-  if (!fs.existsSync(src)) return false;
-  const dest = path.join(outDir, destName);
+function copy(src, dest) {
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.copyFileSync(src, dest);
-  console.log(`Copied APK -> ${dest}`);
-  return true;
+  console.log('Copied', dest);
 }
-
 function findApk(dir) {
-  if (!fs.existsSync(dir)) return null;
+  if (!exists(dir)) return null;
   const stack = [dir];
+  const hits = [];
   while (stack.length) {
-    const cur = stack.pop();
-    for (const name of fs.readdirSync(cur)) {
-      const full = path.join(cur, name);
-      const st = fs.statSync(full);
-      if (st.isDirectory()) stack.push(full);
-      else if (name.endsWith('.apk')) return full;
+    const d = stack.pop();
+    for (const name of fs.readdirSync(d)) {
+      const p = path.join(d, name);
+      const st = fs.statSync(p);
+      if (st.isDirectory()) stack.push(p);
+      else if (name.toLowerCase().endsWith('.apk')) hits.push(p);
     }
   }
-  return null;
+  if (!hits.length) return null;
+  hits.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+  return hits[0];
 }
 
-// 1) EAS local APK
-const eas = run(pnpm, ['exec', 'eas', '--version']);
-if (eas.status === 0) {
-  const built = run(pnpm, [
-    'exec',
-    'eas',
-    'build',
-    '--local',
-    '--platform',
-    'android',
-    '--profile',
-    'local-apk',
-    '--non-interactive',
-  ]);
-  if (built.status === 0) {
-    const apk = findApk(appRoot) || findApk(path.join(repoRoot, 'dist'));
-    if (apk && copyIfExists(apk, 'DTMInventory.apk')) process.exit(0);
-  }
-  console.warn('EAS local build did not produce an APK. Trying Gradle path...');
-} else {
-  console.warn('eas-cli not available. Trying Gradle path...');
-}
+fs.mkdirSync(outDir, { recursive: true });
+fs.mkdirSync(masterDownloads, { recursive: true });
 
-// 2) Expo prebuild + Gradle
-const prebuild = run(pnpm, ['exec', 'expo', 'prebuild', '--platform', 'android', '--no-install']);
-if (prebuild.status === 0 && fs.existsSync(path.join(appRoot, 'android'))) {
-  const gradlew = path.join(appRoot, 'android', isWin ? 'gradlew.bat' : 'gradlew');
-  if (fs.existsSync(gradlew)) {
-    const gradle = run(gradlew, ['assembleRelease'], { cwd: path.join(appRoot, 'android') });
-    if (gradle.status === 0) {
-      const apk =
-        findApk(path.join(appRoot, 'android', 'app', 'build', 'outputs', 'apk')) ||
-        findApk(path.join(appRoot, 'android'));
-      if (apk && copyIfExists(apk, 'DTMInventory.apk')) process.exit(0);
-    }
+const finalApk = path.join(outDir, 'DTMInventory.apk');
+let built = null;
+
+// 1) Gradle local release/debug
+const gradlew = process.platform === 'win32'
+  ? path.join(appRoot, 'android', 'gradlew.bat')
+  : path.join(appRoot, 'android', 'gradlew');
+if (exists(gradlew)) {
+  console.log('Trying local Gradle APK build...');
+  // Prefer release; fall back to debug
+  const okRelease = run(
+    gradlew,
+    ['assembleRelease', '--no-daemon'],
+    { cwd: path.join(appRoot, 'android'), timeout: 60 * 60 * 1000 },
+  );
+  built = findApk(path.join(appRoot, 'android', 'app', 'build', 'outputs', 'apk'));
+  if (!built) {
+    const okDebug = run(
+      gradlew,
+      ['assembleDebug', '--no-daemon'],
+      { cwd: path.join(appRoot, 'android'), timeout: 60 * 60 * 1000 },
+    );
+    built = findApk(path.join(appRoot, 'android', 'app', 'build', 'outputs', 'apk'));
   }
 }
 
-// 3) Fallback: export JS bundle so the downloads portal still has an Android artifact
-console.warn('Native APK tooling unavailable in this environment.');
-console.warn('Exporting Android JS bundle as a development artifact instead.');
-const exportDir = path.join(outDir, 'android-export');
-if (fs.existsSync(exportDir)) fs.rmSync(exportDir, { recursive: true, force: true });
-const exp = run(pnpm, ['exec', 'expo', 'export', '--platform', 'android', '--output-dir', exportDir], {
-  env: { CI: '1' },
-});
-if (exp.status !== 0) {
-  console.error('Android export failed.');
-  process.exit(1);
+// 2) EAS local
+if (!built) {
+  console.log('Trying EAS local APK build (requires eas-cli + Android SDK)...');
+  const easCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  const ok = run(easCmd, ['eas-cli', 'build', '-p', 'android', '--profile', 'local-apk', '--local', '--non-interactive'], {
+    cwd: appRoot,
+    timeout: 90 * 60 * 1000,
+  });
+  if (ok) built = findApk(appRoot) || findApk(outDir);
 }
 
-// Write a small note next to the export
-fs.writeFileSync(
-  path.join(outDir, 'DTMInventory-android-README.txt'),
-  [
-    'Native APK was not built in this environment (Android SDK / EAS local build unavailable).',
-    'An Expo Android export is available under android-export/.',
-    '',
-    'On a Windows machine with Android Studio + JDK installed, re-run:',
-    '  pnpm android:apk',
-    '',
-    'Or use EAS:',
-    '  cd artifacts/dtm-inventory-android',
-    '  pnpm exec eas build -p android --profile preview',
-    '',
-  ].join('\n'),
-);
-console.log(`Android export ready at ${exportDir}`);
-process.exit(0);
+// 3) EAS cloud (user must be logged in)
+if (!built) {
+  console.log('Trying EAS cloud APK build (requires `eas login`)...');
+  const easCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  const ok = run(easCmd, ['eas-cli', 'build', '-p', 'android', '--profile', 'preview', '--non-interactive'], {
+    cwd: appRoot,
+    timeout: 90 * 60 * 1000,
+  });
+  if (ok) {
+    console.log('Cloud build started. When finished, download the APK and re-run:');
+    console.log('  pnpm android:publish-apk -- path/to/app.apk');
+  }
+}
+
+if (!built) {
+  console.error('\nCould not produce an APK in this environment.');
+  console.error('On a machine with Android Studio / SDK:');
+  console.error('  cd artifacts/catalog-scanner-android');
+  console.error('  pnpm install');
+  console.error('  pnpm apk');
+  console.error('\nOr with EAS:');
+  console.error('  npx eas-cli login');
+  console.error('  npx eas-cli build -p android --profile preview');
+  process.exit(2);
+}
+
+copy(built, finalApk);
+copy(finalApk, path.join(masterDownloads, 'DTMInventory.apk'));
+
+// Also drop into common Windows ProgramData downloads if present via env
+const dataDir = process.env.DTM_INVENTORY_DATA_DIR || process.env.CATALOG_SCANNER_DATA_DIR;
+if (dataDir) {
+  copy(finalApk, path.join(dataDir, 'downloads', 'DTMInventory.apk'));
+}
+
+// Brand icon for download page
+const icon = path.join(repoRoot, 'artifacts/master-server/src/gui/shared/brand/icon-256.png');
+if (exists(icon)) copy(icon, path.join(masterDownloads, 'icon.png'));
+
+console.log('\nAPK ready:');
+console.log(' ', finalApk);
+console.log('Published to Master downloads:');
+console.log(' ', path.join(masterDownloads, 'DTMInventory.apk'));
+console.log('\nStart Master, then open http://<lan-ip>:<port>/ on a phone to scan the APK QR.');

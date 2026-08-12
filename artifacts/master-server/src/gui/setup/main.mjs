@@ -195,6 +195,15 @@ function writeDesktopShortcut(installDir, launchPath) {
   );
 }
 
+function resolveIcon() {
+  const candidates = [
+    path.join(__dirname, '../shared/brand/app.ico'),
+    path.join(__dirname, '../shared/brand/icon-256.png'),
+    path.join(process.resourcesPath || '', 'app.ico'),
+  ];
+  return candidates.find((p) => { try { return fs.existsSync(p); } catch { return false; } });
+}
+
 function createWindow() {
   const iconPath = path.join(__dirname, '../shared/brand/app.ico');
   const win = new BrowserWindow({
