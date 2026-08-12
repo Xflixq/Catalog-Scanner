@@ -1,4 +1,14 @@
 const $ = (id) => document.getElementById(id);
+let catalogCache = { groups: [] };
+let currentPage = 'dashboard';
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll('&', '&' + 'amp;')
+    .replaceAll('<', '&' + 'lt;')
+    .replaceAll('>', '&' + 'gt;')
+    .replaceAll('"', '&' + 'quot;');
+}
 
 function wireWindowControls() {
   $('btnMin')?.addEventListener('click', () => window.winControls?.minimize());
@@ -8,28 +18,57 @@ function wireWindowControls() {
   $('btnClose')?.addEventListener('click', () => window.winControls?.close());
 }
 
-function renderStatus(status) {
+function showPage(name) {
+  currentPage = name;
+  document.querySelectorAll('.page-view').forEach((el) => {
+    el.classList.toggle('active', el.id === `page-${name}`);
+  });
+  document.querySelectorAll('.nav-item').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.page === name);
+  });
+  if (name === 'inventory') renderCatalog();
+}
+
+function wireNav() {
+  document.querySelectorAll('.nav-item').forEach((btn) => {
+    btn.addEventListener('click', () => showPage(btn.dataset.page));
+  });
+  document.querySelectorAll('[data-goto]').forEach((btn) => {
+    btn.addEventListener('click', () => showPage(btn.dataset.goto));
+  });
+}
+
+function renderDashStats(status) {
   const cards = [
     ['Network', status.baseUrl || '—'],
-    ['Catalogue', `${status.items || 0} items · ${status.names || 0} names`],
-    ['Sessions', `${status.sessions || 0} active`],
-    ['Database', status.dbPath || '—'],
+    ['Items', String(status.items || 0)],
+    ['Names', String(status.names || 0)],
+    ['Sessions', String(status.sessions || 0)],
   ];
-  $('statusMeta').innerHTML = cards
+  $('dashStats').innerHTML = cards
     .map(
       ([label, value]) =>
-        `<div class="stat"><span class="stat-label">${label}</span><span class="stat-value">${escapeHtml(
-          String(value),
+        `<div class="stat"><span class="stat-label">${escapeHtml(label)}</span><span class="stat-value">${escapeHtml(
+          value,
         )}</span></div>`,
     )
     .join('');
+  $('dashNetwork').textContent = status.baseUrl || '—';
+  $('dashDb').textContent = status.dbPath ? `Database · ${status.dbPath}` : '—';
+  $('sidebarStatus').textContent = status.baseUrl
+    ? `Online · ${status.items || 0} items`
+    : 'Connecting…';
+  if (status.nodeBin) {
+    $('aboutNode').textContent = `Runtime Node · ${status.nodeBin}`;
+  }
 }
 
 async function refreshStatus() {
   const status = await window.master.status();
-  renderStatus(status);
-  $('dbPath').value = status.dbPath || '';
-  $('port').value = String(status.port || '');
+  renderDashStats(status);
+  if ($('dbPath')) $('dbPath').value = status.dbPath || '';
+  if ($('port')) $('port').value = String(status.port || '');
+  return status;
 }
 
 async function refreshTether() {
@@ -52,10 +91,27 @@ async function refreshCodes() {
     .join('');
 }
 
-async function refreshCatalog() {
-  const data = await window.master.catalog();
+function renderCatalog() {
+  const q = ($('inventorySearch')?.value || '').trim().toLowerCase();
+  let groups = catalogCache.groups || [];
+  if (q) {
+    groups = groups
+      .map((g) => {
+        const nameHit = String(g.name || '').toLowerCase().includes(q);
+        const items = (g.items || []).filter((it) =>
+          String(it.barcode || '').toLowerCase().includes(q) ||
+          String(it.notes || '').toLowerCase().includes(q),
+        );
+        if (nameHit) return g;
+        if (!items.length) return null;
+        return { ...g, items, count: items.length };
+      })
+      .filter(Boolean);
+  }
+
+  $('inventoryCount').textContent = `${groups.length} group${groups.length === 1 ? '' : 's'}`;
   $('catalog').innerHTML =
-    (data.groups || [])
+    groups
       .map((group) => {
         const items = (group.items || [])
           .map((item) => {
@@ -67,74 +123,96 @@ async function refreshCatalog() {
             }</span></div>`;
           })
           .join('');
-        return `<details class="group"><summary>${escapeHtml(
+        return `<details class="group" open><summary><span>${escapeHtml(
           group.name,
-        )} <span class="muted">/ ${group.count}</span></summary><div class="group-items">${
+        )}</span><span class="muted">${group.count || 0}</span></summary><div class="group-items">${
           items || '<div class="muted">No barcodes yet</div>'
         }</div></details>`;
       })
       .join('') || '<p class="muted">No groups yet. Scan barcodes from a paired device.</p>';
 }
 
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll('&', '&' + 'amp;')
-    .replaceAll('<', '&' + 'lt;')
-    .replaceAll('>', '&' + 'gt;')
-    .replaceAll('"', '&' + 'quot;');
+async function refreshCatalog() {
+  const data = await window.master.catalog();
+  catalogCache = data || { groups: [] };
+  renderCatalog();
 }
 
-$('refreshTether').addEventListener('click', () => {
-  refreshTether().catch((e) => alert(e.message));
-});
+async function refreshAll() {
+  await refreshStatus();
+  await Promise.all([
+    refreshTether().catch(() => undefined),
+    refreshCodes().catch(() => undefined),
+    refreshCatalog().catch(() => undefined),
+  ]);
+}
 
-$('createCode').addEventListener('click', async () => {
-  try {
-    const created = await window.master.createCode({
-      label: $('codeLabel').value,
-      ttlMinutes: 60,
-    });
-    $('latestCode').classList.remove('hidden');
-    $('latestCode').textContent = created.code;
-    $('codeLabel').value = '';
-    await refreshCodes();
-  } catch (e) {
-    alert(e.message);
-  }
-});
+function wireActions() {
+  $('refreshAll')?.addEventListener('click', () => {
+    refreshAll().catch((e) => alert(e.message));
+  });
+  $('refreshInventory')?.addEventListener('click', () => {
+    refreshCatalog().catch((e) => alert(e.message));
+  });
+  $('inventorySearch')?.addEventListener('input', () => renderCatalog());
 
-$('browseDb').addEventListener('click', async () => {
-  const p = await window.master.pickDbPath();
-  if (p) $('dbPath').value = p;
-});
+  $('refreshTether')?.addEventListener('click', () => {
+    refreshTether().catch((e) => alert(e.message));
+  });
 
-$('saveConfig').addEventListener('click', async () => {
-  try {
-    const result = await window.master.saveConfig({
-      dbPath: $('dbPath').value,
-      port: Number($('port').value),
-    });
-    $('configNote').textContent = result.note || 'Saved.';
-  } catch (e) {
-    alert(e.message);
-  }
-});
+  $('createCode')?.addEventListener('click', async () => {
+    try {
+      const created = await window.master.createCode({
+        label: $('codeLabel').value,
+        ttlMinutes: 60,
+      });
+      $('latestCode').classList.remove('hidden');
+      $('latestCode').textContent = created.code;
+      $('codeLabel').value = '';
+      await refreshCodes();
+      await refreshStatus();
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+
+  $('browseDb')?.addEventListener('click', async () => {
+    const p = await window.master.pickDbPath();
+    if (p) $('dbPath').value = p;
+  });
+
+  $('saveConfig')?.addEventListener('click', async () => {
+    try {
+      const result = await window.master.saveConfig({
+        dbPath: $('dbPath').value,
+        port: Number($('port').value),
+      });
+      $('configNote').textContent = result.note || 'Saved.';
+      await refreshStatus();
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+}
 
 async function boot() {
   wireWindowControls();
-  await refreshStatus();
-  await refreshTether();
-  await refreshCodes();
-  await refreshCatalog();
+  wireNav();
+  wireActions();
+  showPage('dashboard');
+  await refreshAll();
   setInterval(() => {
     refreshStatus().catch(() => undefined);
-    refreshCatalog().catch(() => undefined);
-    refreshCodes().catch(() => undefined);
+    if (currentPage === 'inventory') refreshCatalog().catch(() => undefined);
+    if (currentPage === 'devices') {
+      refreshCodes().catch(() => undefined);
+    }
   }, 8000);
 }
 
 boot().catch((e) => {
-  $('statusMeta').innerHTML = `<div class="stat"><span class="stat-label">Error</span><span class="stat-value">${escapeHtml(
+  $('dashStats').innerHTML = `<div class="stat"><span class="stat-label">Error</span><span class="stat-value">${escapeHtml(
     e.message || String(e),
   )}</span></div>`;
+  $('sidebarStatus').textContent = 'Offline';
 });

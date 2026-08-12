@@ -26,10 +26,10 @@ let selectedNodeBin = '';
 function createWindow() {
   const iconPath = path.join(__dirname, '../shared/brand/app.ico');
   const win = new BrowserWindow({
-    width: 1180,
-    height: 820,
-    minWidth: 960,
-    minHeight: 680,
+    width: 1280,
+    height: 860,
+    minWidth: 820,
+    minHeight: 600,
     backgroundColor: '#FAFBFE',
     title: 'DTM Inventory Master',
     icon: iconPath,
