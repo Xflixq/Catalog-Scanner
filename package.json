@@ -1,34 +1,23 @@
 {
   "name": "dtm-inventory",
   "version": "0.0.0",
-  "license": "MIT",
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "scripts": {
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "android:add-expo": "pnpm --filter @workspace/dtm-inventory-android add expo@~54.0.27",
-    "android:dev": "pnpm --filter @workspace/dtm-inventory-android run dev",
-    "android:dev:tunnel": "pnpm --filter @workspace/dtm-inventory-android run dev:tunnel",
-    "android:apk": "pnpm --filter @workspace/dtm-inventory-android exec node ./scripts/build-apk.mjs",
-    "web:dev": "pnpm --filter @workspace/dtm-inventory-web run dev",
-    "master:dev": "pnpm --filter @workspace/master-server start",
-    "master:api": "pnpm --filter @workspace/master-server dev:api",
-    "setup:dev": "pnpm --filter @workspace/master-server setup:dev",
-    "master:build": "node ./scripts/run-with-timeout.mjs 30000 pnpm --filter @workspace/master-server build:exe",
-    "master:msi": "pnpm master:build && node ./scripts/run-with-timeout.mjs 30000 node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-msi.ps1",
-    "master:setup": "pnpm master:build && node ./scripts/run-with-timeout.mjs 30000 node ./scripts/run-ps1.mjs artifacts/master-server/installer/build-setup.ps1",
-    "downloads:build": "node ./scripts/run-with-timeout.mjs 30000 pnpm --filter @workspace/downloads-portal build",
-    "downloads:dev": "pnpm --filter @workspace/downloads-portal start",
-    "build:all": "node ./scripts/run-ps1.mjs scripts/build-all.ps1",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "node ./scripts/run-with-timeout.mjs 30000 pnpm run typecheck:libs",
-    "master:rebuild": "pnpm --filter @workspace/master-server rebuild better-sqlite3",
     "doctor": "node ./scripts/doctor.mjs",
-    "install:master": "pnpm install --filter @workspace/master-server..."
+    "repair": "node ./scripts/repair.mjs",
+    "master:dev": "pnpm --filter @workspace/master-server start",
+    "setup:dev": "pnpm --filter @workspace/master-server setup:dev",
+    "master:api": "pnpm --filter @workspace/master-server dev:api",
+    "master:rebuild": "pnpm --filter @workspace/master-server rebuild better-sqlite3",
+    "master:build": "pnpm --filter @workspace/master-server build:exe",
+    "postinstall": "node ./scripts/doctor.mjs || exit 0"
   },
   "devDependencies": {
-    "@types/react": "~19.1.10",
-    "prettier": "^3.9.6",
     "typescript": "~5.9.3"
+  },
+  "pnpm": {
+    "neverBuiltDependencies": [],
+    "overrides": {}
   }
 }
